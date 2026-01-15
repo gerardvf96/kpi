@@ -108,6 +108,7 @@ INSTALLED_APPS = (
     'allauth.socialaccount',
     'allauth.socialaccount.providers.microsoft',
     'allauth.socialaccount.providers.openid_connect',
+    'allauth.socialaccount.providers.saml',
     'allauth.usersessions',
     'allauth.mfa',
     'hub.HubAppConfig',
@@ -365,17 +366,17 @@ CONSTANCE_CONFIG = {
     'USER_METADATA_FIELDS': (
         LazyJSONSerializable([
             {'name': 'name', 'required': True},
-            {'name': 'organization', 'required': False},
-            {'name': 'organization_type', 'required': False},
-            {'name': 'organization_website', 'required': False},
-            {'name': 'sector', 'required': False},
-            {'name': 'bio', 'required': False},
-            {'name': 'city', 'required': False},
-            {'name': 'country', 'required': False},
-            {'name': 'twitter', 'required': False},
-            {'name': 'linkedin', 'required': False},
-            {'name': 'instagram', 'required': False},
-            {'name': 'newsletter_subscription', 'required': False},
+            # {'name': 'organization', 'required': False},
+            # {'name': 'organization_type', 'required': False},
+            # {'name': 'organization_website', 'required': False},
+            # {'name': 'sector', 'required': False},
+            # {'name': 'bio', 'required': False},
+            # {'name': 'city', 'required': False},
+            # {'name': 'country', 'required': False},
+            # {'name': 'twitter', 'required': False},
+            # {'name': 'linkedin', 'required': False},
+            # {'name': 'instagram', 'required': False},
+            # {'name': 'newsletter_subscription', 'required': False},
         ]),
         # The available fields are hard-coded in the front end
         'Display (and optionally require) these metadata fields for users.\n'
@@ -391,8 +392,8 @@ CONSTANCE_CONFIG = {
     ),
     'PROJECT_METADATA_FIELDS': (
         LazyJSONSerializable([
-            {'name': 'sector', 'required': False},
-            {'name': 'country', 'required': False},
+            # {'name': 'sector', 'required': False},
+            # {'name': 'country', 'required': False},
             {'name': 'description', 'required': False},
         ]),
         # The available fields are hard-coded in the front end

@@ -141,6 +141,15 @@ class SessionAuthentication(DRFSessionAuthentication):
         return 'Session'
 
 
+class SessionAuthenticationWithoutCSRF(DRFSessionAuthentication):
+    
+    def authenticate_header(self, request):
+        return 'Session'
+
+    def enforce_csrf(self, request):
+        return
+
+
 class TokenAuthentication(MfaBlockerMixin, DRFTokenAuthentication, RequiresAccessLogMixin):
     """
     Extend DRF class to support MFA.

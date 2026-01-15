@@ -35,6 +35,7 @@ from kpi.authentication import (
     BasicAuthentication,
     DigestAuthentication,
     SessionAuthentication,
+    SessionAuthenticationWithoutCSRF,
     TokenAuthentication,
 )
 from kpi.parsers import RawFilenameMultiPartParser
@@ -207,6 +208,7 @@ class XFormSubmissionApi(
             DigestAuthentication,
             BasicAuthentication,
             TokenAuthentication,
+            SessionAuthenticationWithoutCSRF,
             # we only need this for the create_data_collector, but since we're setting
             # this in the __init__ we can't set it in the action decorator
             DataCollectorTokenAuthentication,

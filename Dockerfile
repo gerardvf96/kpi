@@ -10,6 +10,7 @@ RUN python -m venv "$VIRTUAL_ENV"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY ./dependencies/pip/requirements.txt "${TMP_DIR}/pip_dependencies.txt"
 RUN uv pip sync "${TMP_DIR}/pip_dependencies.txt" 1>/dev/null
+RUN UWSGI_PROFILE_OVERRIDE="xml=no" uv pip install "uwsgi==2.0.24"
 
 
 FROM ghcr.io/astral-sh/uv:python3.10-bookworm-slim

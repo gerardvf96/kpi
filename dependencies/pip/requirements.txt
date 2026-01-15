@@ -127,7 +127,7 @@ django==4.2.24
     #   djangorestframework
     #   drf-spectacular
     #   jsonfield
-django-allauth[mfa]==65.11.2
+django-allauth[mfa,saml]==65.12.1
     # via -r dependencies/pip/requirements.in
 django-amazon-ses==4.0.1
     # via -r dependencies/pip/requirements.in
@@ -320,7 +320,7 @@ kombu==5.3.6
     # via
     #   -r dependencies/pip/requirements.in
     #   celery
-lxml==5.2.0
+lxml==6.0.2
     # via
     #   -r dependencies/pip/requirements.in
     #   formpack
@@ -421,6 +421,7 @@ python-dateutil==2.9.0.post0
     #   python-crontab
 python-digest @ git+https://github.com/dimagi/python-digest@5c94bb74516b977b60180ee832765c0695ff2b56#egg=python_digest
     # via -r dependencies/pip/requirements.in
+python3-saml==1.16.0
 pytz==2024.1
     # via
     #   flower
@@ -528,7 +529,7 @@ urllib3==1.26.18
     #   requests
     #   responses
     #   sentry-sdk
-uwsgi==2.0.24
+# uwsgi==2.0.24
     # via -r dependencies/pip/requirements.in
 vine==5.1.0
     # via
@@ -554,6 +555,7 @@ xlwt==1.3.0
     # via
     #   -r dependencies/pip/requirements.in
     #   xlutils
+xmlsec==1.3.17
 yarl==1.9.4
     # via aiohttp
 yubico-client==1.13.0
