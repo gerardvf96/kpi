@@ -5,7 +5,7 @@ msgstr ""
 "POT-Creation-Date: 2026-01-15 19:07+0000\n"
 "PO-Revision-Date: 2026-01-15 19:56+0000\n"
 "Last-Translator: Gerard, 2026\n"
-"Language-Team: Spanish (http://app.transifex.com/kobotoolbox/kobotoolbox/language/ca/)\n"
+"Language-Team: Catalan (http://app.transifex.com/kobotoolbox/kobotoolbox/language/ca/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -15,23 +15,23 @@ msgstr ""
 
 #: .Add+choice+to+question
 msgid "Add choice to question"
-msgstr "Agregar «opción» a la pregunta"
+msgstr "Afegir «opció» a la pregunta"
 
 #: .Remove+choice+from+question
 msgid "Remove choice from question"
-msgstr "Eliminar «opción» de la pregunta"
+msgstr "Eliminar «opció» de la pregunta"
 
 #: .Edit+choice+labels
 msgid "Edit choice labels"
-msgstr "Editar las etiquetas de «opción»"
+msgstr "Editar les etiquetes de «opció»"
 
 #: .Change+choice+order
 msgid "Change choice order"
-msgstr "Cambiar el orden de «opción»"
+msgstr "Canviar l'ordre de «opció»"
 
 #: .Edit+choice+values
 msgid "Edit choice values"
-msgstr "Editar los valores de «opción»"
+msgstr "Editar els valors de «opció»"
 
 #: .Delete+question
 msgid "Delete question"
@@ -39,51 +39,51 @@ msgstr "Eliminar pregunta"
 
 #: .Edit+question+labels
 msgid "Edit question labels"
-msgstr "Editar etiquetas de la pregunta"
+msgstr "Editar etiquetes de la pregunta"
 
 #: .Edit+question+settings
 msgid "Edit question settings"
-msgstr "Editar la configuración de la pregunta"
+msgstr "Editar la configuració de la pregunta"
 
 #: .Edit+skip+logic
 msgid "Edit skip logic"
-msgstr "Editar lógica de omisión"
+msgstr "Editar lògica de omissió"
 
 #: .Edit+validation
 msgid "Edit validation"
-msgstr "Editar validación"
+msgstr "Editar validació"
 
 #: .Delete+entire+group
 msgid "Delete entire group"
-msgstr "Eliminar todo el grupo"
+msgstr "Eliminar tot el grup"
 
 #: .Edit+group+labels
 msgid "Edit group labels"
-msgstr "Editar etiquetas del grupo"
+msgstr "Editar etiquetes del grup"
 
 #: .Add+question+to+group
 msgid "Add question to group"
-msgstr "Agregar pregunta al grupo"
+msgstr "Afegir pregunta al grup"
 
 #: .Remove+question+from+group
 msgid "Remove question from group"
-msgstr "Eliminar pregunta del grupo"
+msgstr "Eliminar pregunta del grup"
 
 #: .Change+question+order+within+group
 msgid "Change question order within group"
-msgstr "Cambiar el orden de las preguntas dentro del grupo"
+msgstr "Canviar l'ordre de les preguntes dins del grup"
 
 #: .Edit+group+settings
 msgid "Edit group settings"
-msgstr "Editar la configuración del grupo"
+msgstr "Editar la configuració del grup"
 
 #: .Split+group
 msgid "Split group"
-msgstr "Dividir el grupo"
+msgstr "Dividir el grup"
 
 #: .Change+form+appearance
 msgid "Change form appearance"
-msgstr "Cambiar el aspecto del formulario"
+msgstr "Canviar l'aspecte del formulari"
 
 #: .Change+form+meta+questions
 msgid "Change form meta questions"

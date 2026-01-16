@@ -5,7 +5,7 @@ msgstr ""
 "POT-Creation-Date: 2026-01-15 19:07+0000\n"
 "PO-Revision-Date: 2026-01-15 19:56+0000\n"
 "Last-Translator: Gerard, 2026\n"
-"Language-Team: Spanish (http://app.transifex.com/kobotoolbox/kobotoolbox/language/ca/)\n"
+"Language-Team: Catalan (http://app.transifex.com/kobotoolbox/kobotoolbox/language/ca/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -14,61 +14,61 @@ msgstr ""
 
 #: hub/templates/admin/loginas/change_form.html:7
 msgid "Log in as user"
-msgstr "Iniciar sesión como usuario"
+msgstr "Iniciar sessió com a usuari"
 
 #: kobo/apps/accounts/forms.py:68
 msgid "Please enter a valid URL"
-msgstr "Introduzca una URL válida"
+msgstr "Introduïu una URL vàlida"
 
 #: kobo/apps/accounts/forms.py:76
 msgid "Non-profit organization"
-msgstr "Organización sin fines de lucro"
+msgstr "Organització sense fins de lucre"
 
 #: kobo/apps/accounts/forms.py:77
 msgid "Government institution"
-msgstr "Institución gubernamental"
+msgstr "Institució governamental"
 
 #: kobo/apps/accounts/forms.py:78
 msgid "Educational organization"
-msgstr "Organización educativa"
+msgstr "Organització educativa"
 
 #: kobo/apps/accounts/forms.py:79
 msgid "A commercial/for-profit company"
-msgstr "Una empresa comercial/con fines de lucro"
+msgstr "Una empresa comercial/amb fins de lucre"
 
 #: kobo/apps/accounts/forms.py:80
 msgid "I am not associated with any organization"
-msgstr "No estoy asociado/a con ninguna organización"
+msgstr "No estic associat/ada amb cap organització"
 
 #: kobo/apps/accounts/forms.py:88
 msgid "Male"
-msgstr "Masculino"
+msgstr "Masculí"
 
 #: kobo/apps/accounts/forms.py:89
 msgid "Female"
-msgstr "Femenino"
+msgstr "Femení"
 
 #: kobo/apps/accounts/forms.py:90 kobo/static_lists.py:37
 msgid "Other"
-msgstr "Otro"
+msgstr "Altre"
 
 #: kobo/apps/accounts/forms.py:124
 #: kobo/apps/accounts/templates/legal/registration_legal.html:8
 msgid "Terms of Service"
-msgstr "Términos del servicio"
+msgstr "Condicions de servei"
 
 #: kobo/apps/accounts/forms.py:131
 #: kobo/apps/accounts/templates/legal/registration_legal.html:13
 msgid "Privacy Policy"
-msgstr "Política de privacidad"
+msgstr "Política de privacitat"
 
 #: kobo/apps/accounts/forms.py:133
 msgid "I agree with the ##terms_of_service## and ##privacy_policy##"
-msgstr "Estoy de acuerdo con los ##terms_of_service## y la ##privacy_policy##"
+msgstr "Estic d'acord amb les ##terms_of_service## i la ##privacy_policy##"
 
 #: kobo/apps/accounts/forms.py:147
 msgid "Password confirmation"
-msgstr "Confirmación de la contraseña"
+msgstr "Confirmació de la contrasenya"
 
 #: kobo/apps/accounts/forms.py:149
 msgid "name@organization.org"
@@ -77,11 +77,11 @@ msgstr "name@organization.org"
 #: kobo/apps/accounts/forms.py:224
 #: kobo/apps/openrosa/libs/serializers/metadata_serializer.py:127
 msgid "This field is required."
-msgstr "Este campo es obligatorio."
+msgstr "Aquest camp és obligatori."
 
 #: kobo/apps/accounts/forms.py:317
 msgid "You must type the same password each time."
-msgstr "Debes escribir siempre la misma contraseña."
+msgstr "Heu d'escriure sempre la mateixa contrasenya."
 
 #: kobo/apps/accounts/mfa/forms.py:57
 msgid "Enter the ##token length##-character token"
@@ -257,20 +257,20 @@ msgstr "El enlace de confirmación de correo electrónico expiró o no es válid
 
 #: kobo/apps/accounts/templates/account/login.html:29
 msgid "Login"
-msgstr "Inicio de sesión"
+msgstr "Iniciar sessió"
 
 #: kobo/apps/accounts/templates/account/login.html:36
 #: kobo/apps/accounts/templates/account/signup.html:14
 msgid "Create an account"
-msgstr "Crear una cuenta"
+msgstr "Crear un compte"
 
 #: kobo/apps/accounts/templates/account/login.html:41
 msgid "Forgot password?"
-msgstr "¿Olvidaste tu contraseña?"
+msgstr "¿Heu oblidat la contrasenya?"
 
 #: kobo/apps/accounts/templates/account/login.html:50
 msgid "Log in using SSO"
-msgstr "Inicia sesión con SSO"
+msgstr "Iniciar sessió amb SSO"
 
 #: kobo/apps/accounts/templates/account/login.html:52
 #: kobo/apps/accounts/templates/account/signup.html:63
@@ -281,22 +281,22 @@ msgstr "Si configuraste el inicio de sesión único en la configuración de la c
 
 #: kobo/apps/accounts/templates/account/password_reset.html:10
 msgid "Password Reset"
-msgstr "Restablecimiento de contraseña"
+msgstr "Restabliment de contrasenya"
 
 #: kobo/apps/accounts/templates/account/password_reset.html:19
 msgid "Reset Password"
-msgstr "Restablecer contraseña"
+msgstr "Restablir contrasenya"
 
 #: kobo/apps/accounts/templates/account/password_reset_complete.html:11
 #: kobo/apps/accounts/templates/account/password_reset_from_key_done.html:11
 msgid "Password reset successfully"
-msgstr "Contraseña restablecida correctamente"
+msgstr "Contrasenya restablida correctament"
 
 #: kobo/apps/accounts/templates/account/password_reset_complete.html:14
 #: kobo/apps/accounts/templates/account/password_reset_from_key_done.html:14
 #: kobo/apps/accounts/templates/socialaccount/login.html:34
 msgid "Log in"
-msgstr "Iniciar sesión"
+msgstr "Iniciar sessió"
 
 #: kobo/apps/accounts/templates/account/password_reset_done.html:12
 msgid ""
@@ -318,7 +318,7 @@ msgstr "Enviar"
 
 #: kobo/apps/accounts/templates/account/signup.html:47
 msgid "Create Account"
-msgstr "Crear cuenta"
+msgstr "Crear compte"
 
 #: kobo/apps/accounts/templates/account/signup.html:51
 #: kobo/apps/accounts/templates/socialaccount/login.html:39
@@ -327,19 +327,19 @@ msgstr "o"
 
 #: kobo/apps/accounts/templates/account/signup.html:51
 msgid "login"
-msgstr "inicio de sesión"
+msgstr "iniciar sessió"
 
 #: kobo/apps/accounts/templates/account/signup.html:61
 msgid "Register using SSO"
-msgstr "Registrarse mediante SSO"
+msgstr "Registrar-se mitjançant SSO"
 
 #: kobo/apps/accounts/templates/account/signup.html:75
 msgid "Register with SSO"
-msgstr "Registrarse con SSO"
+msgstr "Registrar-se amb SSO"
 
 #: kobo/apps/accounts/templates/account/verification_sent.html:8
 msgid "Confirm your email address"
-msgstr "Confirma tu dirección de correo electrónico"
+msgstr "Confirmeu la vostra adreça de correu electrònic"
 
 #: kobo/apps/accounts/templates/account/verification_sent.html:11
 msgid "Please click the activation link in the email just sent to you."
@@ -352,16 +352,16 @@ msgstr "Error de inicio de sesión por SSO"
 
 #: kobo/apps/accounts/templates/socialaccount/authentication_error.html:17
 msgid "An error occurred while attempting to login using your SSO account."
-msgstr "Se produjo un error al intentar iniciar sesión con tu cuenta SSO."
+msgstr "S'ha produït un error en intentar iniciar sessió amb el vostre compte SSO."
 
 #: kobo/apps/accounts/templates/socialaccount/authentication_error.html:20
 #: kpi/templates/custom_404.html:12
 msgid "Go back"
-msgstr "Regresar"
+msgstr "Tornar"
 
 #: kobo/apps/accounts/templates/socialaccount/connections.html:5
 msgid "Connect your Account to SSO"
-msgstr "Conectar tu cuenta a SSO"
+msgstr "Connectar el vostre compte a SSO"
 
 #: kobo/apps/accounts/templates/socialaccount/connections.html:10
 msgid "Manage your SSO Account"
@@ -470,7 +470,7 @@ msgstr "Informe de fallas de los servicios REST"
 #: kobo/apps/hook/templates/reports/failures_email_body.html:3
 #: kobo/apps/hook/templates/reports/failures_email_body.txt:3
 msgid "Project name"
-msgstr "Nombre del proyecto"
+msgstr "Nom del projecte"
 
 #: kobo/apps/hook/templates/reports/failures_email_body.html:4
 #: kobo/apps/hook/templates/reports/failures_email_body.txt:4
@@ -480,22 +480,22 @@ msgstr "Webhook"
 #: kobo/apps/hook/templates/reports/failures_email_body.html:5
 #: kobo/apps/hook/templates/reports/failures_email_body.txt:5
 msgid "Submission"
-msgstr "Envío"
+msgstr "Presentació"
 
 #: kobo/apps/hook/templates/reports/failures_email_body.html:6
 #: kobo/apps/hook/templates/reports/failures_email_body.txt:6
 msgid "Status code"
-msgstr "Código de estado"
+msgstr "Codi d'estat"
 
 #: kobo/apps/hook/templates/reports/failures_email_body.html:7
 #: kobo/apps/hook/templates/reports/failures_email_body.txt:7
 msgid "Message"
-msgstr "Mensaje"
+msgstr "Missatge"
 
 #: kobo/apps/hook/templates/reports/failures_email_body.html:8
 #: kobo/apps/hook/templates/reports/failures_email_body.txt:8
 msgid "Date"
-msgstr "Fecha"
+msgstr "Data"
 
 #: kobo/apps/hook/templates/reports/failures_email_body.html:10
 #: kobo/apps/hook/templates/reports/failures_email_body.txt:10
