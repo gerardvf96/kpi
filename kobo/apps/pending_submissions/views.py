@@ -102,14 +102,14 @@ class SendVerificationCodeView(APIView):
         email_message = EmailMessage(
             to=email,
             subject=t('Your verification code for pending submission'),
-            plain_text_content_or_template='pending_submissions/emails/verification_code.txt',
+            plain_text_content_or_template='emails/verification_code.txt',
             template_variables={
                 'code': code,
                 'submission_id': submission_id,
                 'expiry_minutes': CODE_EXPIRY_MINUTES,
                 'base_url': settings.KOBOFORM_URL,
             },
-            html_content_or_template='pending_submissions/emails/verification_code.html',
+            html_content_or_template='emails/verification_code.html',
         )
         return Mailer.send(email_message)
 
