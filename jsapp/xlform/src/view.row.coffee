@@ -10,6 +10,7 @@ $viewChoices = require('./view.choices')
 $viewParams = require('./view.params')
 $viewMandatorySetting = require('./view.mandatorySetting')
 $acceptedFilesView = require('./view.acceptedFiles')
+$invoiceExtractorConfigView = require('./view.invoiceExtractorConfig')
 $viewRowDetail = require('./view.rowDetail')
 renderKobomatrix = require('#/formbuild/renderInBackbone').renderKobomatrix
 hasRowRestriction = require('#/components/locking/lockingUtils').hasRowRestriction
@@ -401,7 +402,7 @@ module.exports = do ->
       @cardSettingsWrap = @$('.card__settings').eq(0)
       @defaultRowDetailParent = @cardSettingsWrap.find('.card__settings__fields--active').eq(0)
       for [key, val] in @model.attributesArray()
-        if key in ["name", "_isRepeat", "appearance", "relevant"] or key.match(/^.+::.+/)
+        if key in ["name", "_isRepeat", "repeat_count", "appearance", "relevant"] or key.match(/^.+::.+/)
           new $viewRowDetail.DetailView(model: val, rowView: @).render().insertInDOM(@)
 
       @model.on 'add', (row) =>
@@ -488,6 +489,12 @@ module.exports = do ->
         @acceptedFilesView = new $acceptedFilesView.AcceptedFilesView({
           rowView: @,
           acceptedFiles: @model.getAcceptedFiles()
+        }).render().insertInDOM(@)
+
+      if questionType is 'invoice_extractor'
+        @invoiceExtractorConfigView = new $invoiceExtractorConfigView.InvoiceExtractorConfigView({
+          rowView: @,
+          configValue: @model.getInvoiceExtractorConfig()
         }).render().insertInDOM(@)
 
       @applyLocking()

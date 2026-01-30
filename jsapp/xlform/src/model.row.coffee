@@ -87,6 +87,11 @@ module.exports = do ->
           outObj['type'] = val.get('typeId')
           outObj['select_from_list_name'] = val.get('listName')
           continue
+        # Handle invoice_extractor: convert to file type with invoice-extractor appearance
+        else if key is 'type' and val.get('typeId') is 'invoice_extractor'
+          outObj['type'] = 'file'
+          outObj['appearance'] = 'invoice-extractor'
+          continue
         else
           result = @getValue(key)
         unless @hidden
@@ -445,6 +450,12 @@ module.exports = do ->
 
     setAcceptedFiles: (bodyAcceptString) ->
       @setDetail('body::accept', bodyAcceptString)
+      return
+
+    getInvoiceExtractorConfig: -> return @attributes['body::invoice-extractor-config']?.attributes?.value
+
+    setInvoiceExtractorConfig: (configString) ->
+      @setDetail('body::invoice-extractor-config', configString)
       return
 
     getParameters: -> readParameters(@attributes.parameters?.attributes?.value)

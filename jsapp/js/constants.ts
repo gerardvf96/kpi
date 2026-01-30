@@ -197,6 +197,7 @@ export enum QuestionTypeName {
   file = 'file',
   geopoint = 'geopoint',
   geoshape = 'geoshape',
+  invoice_extractor = 'invoice_extractor',
   geotrace = 'geotrace',
   hidden = 'hidden',
   image = 'image',
@@ -286,6 +287,11 @@ export const QUESTION_TYPES: QuestionTypes = Object.freeze({
     id: QuestionTypeName['xml-external'],
   },
   file: { label: t('File'), icon: 'qt-file', id: QuestionTypeName.file },
+  invoice_extractor: {
+    label: t('Invoice Extractor'),
+    icon: 'qt-file',
+    id: QuestionTypeName.invoice_extractor,
+  },
   geopoint: {
     label: t('Point'),
     icon: 'qt-point',

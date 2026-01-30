@@ -455,6 +455,8 @@ export interface SurveyRow {
   select_from_list_name?: string
   /** Used by `file` type to list accepted extensions */
   'body::accept'?: string
+  /** Used by `invoice_extractor` type for widget configuration */
+  'body::invoice-extractor-config'?: string
 }
 
 export interface SurveyChoice {

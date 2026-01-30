@@ -256,6 +256,11 @@ module.exports = do ->
     html: -> false
     insertInDOM: (rowView)-> return
 
+  # body::invoice-extractor-config is handled in custom view
+  viewRowDetail.DetailViewMixins['body::invoice-extractor-config'] =
+    html: -> false
+    insertInDOM: (rowView)-> return
+
   viewRowDetail.DetailViewMixins.relevant =
     html: ->
       @$el.addClass("card__settings__fields--active")
@@ -448,6 +453,17 @@ module.exports = do ->
       viewRowDetail.Templates.checkbox @cid, @model.key, t("Repeat"), t("Repeat this group if necessary")
     afterRender: ->
       @listenForCheckboxChange()
+
+  viewRowDetail.DetailViewMixins.repeat_count =
+    html: ->
+      if @model._parent.getValue('_isRepeat')
+        @$el.addClass("card__settings__fields--active")
+        viewRowDetail.Templates.textbox @cid, @model.key, t("Repeat Count (number of iterations)"), 'text'
+      else
+        false
+    afterRender: ->
+      if @model._parent.getValue('_isRepeat')
+        @listenForInputChange(inputType: 'text')
 
   # handled by mandatorySettingSelector
   viewRowDetail.DetailViewMixins.required =

@@ -192,6 +192,12 @@ module.exports = do ->
       required:
         value: false
         _hideUnlessChanged: true
+    'invoice_extractor':
+      label:
+        value: "Extract invoice data"
+      required:
+        value: false
+        _hideUnlessChanged: true
 
   configs.paramTypes = {
     number: 'number',
@@ -241,6 +247,7 @@ module.exports = do ->
   configs.columns = [
     "type",
     "name",
+    "repeat_count", 
     "file",
     "label",
     "hint",
@@ -282,6 +289,7 @@ module.exports = do ->
       ["select_one_from_file", "Select one from file"],
       ["select_multiple_from_file", "Select multiple from file"],
       ["xml-external", "External XML"],
+      ["invoice_extractor", "Invoice Extractor"],
       ["background-geopoint", "Background geopoint", supportedByUI: false],
     ]
 
@@ -352,6 +360,9 @@ module.exports = do ->
       value: "group"
     _isRepeat:
       value: false
+    repeat_count:
+      value: ""
+      _hideUnlessChanged: true
     relevant:
       value: ""
       _hideUnlessChanged: true
