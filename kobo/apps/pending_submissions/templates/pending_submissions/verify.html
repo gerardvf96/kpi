@@ -1,0 +1,368 @@
+{% extends "base_simple.html" %}
+
+{% load static %}
+
+{% block title %}Verify Pending Submission{% endblock %}
+
+{% block head_stylesheets %}
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+    }
+    
+    h1 {
+      color: #333;
+      font-size: 24px;
+      margin: 0 0 10px 0;
+      text-align: center;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    
+    input[type="email"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+    }
+    
+    input[type="email"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #2095f3;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background-color: #2095f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #1a7ed8;
+    }
+    
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .message {
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .message.info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .step {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .result-icon {
+      font-size: 64px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .result-icon.success {
+      color: #28a745;
+    }
+    
+    .result-icon.error {
+      color: #dc3545;
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    .back-link a {
+      color: #2095f3;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+  <!-- Step 1: Email Input -->
+  <div id="step-email" class="step">
+    <h1>Verify Your Identity</h1>
+    <p class="subtitle">Enter your email to receive a verification code</p>
+    
+    <div id="email-message" class="message hidden"></div>
+    
+    <form id="email-form">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" required placeholder="your@email.com">
+      </div>
+      <button type="submit" id="send-code-btn">Send Verification Code</button>
+    </form>
+  </div>
+  
+  <!-- Step 2: Code Verification -->
+  <div id="step-verify" class="step hidden">
+    <h1>Enter Verification Code</h1>
+    <p class="subtitle">We sent a code to <span id="sent-email"></span></p>
+    
+    <div id="verify-message" class="message hidden"></div>
+    
+    <form id="verify-form">
+      <div class="form-group">
+        <label for="code">Verification Code</label>
+        <input type="text" id="code" name="code" required placeholder="Enter 6-digit code" maxlength="6" pattern="\d{6}">
+      </div>
+      <button type="submit" id="verify-btn">Verify Code</button>
+    </form>
+    
+    <div class="back-link">
+      <a href="#" id="resend-link">Didn't receive the code? Send again</a>
+    </div>
+  </div>
+  
+  <!-- Step 3: Result -->
+  <div id="step-result" class="step hidden">
+    <div id="result-icon" class="result-icon"></div>
+    <h1 id="result-title"></h1>
+    <p class="subtitle" id="result-message"></p>
+    
+    <div class="back-link">
+      <a href="#" id="start-over-link">Start over</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const submissionId = '{{ submission_id }}';
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  
+  // Elements
+  const stepEmail = document.getElementById('step-email');
+  const stepVerify = document.getElementById('step-verify');
+  const stepResult = document.getElementById('step-result');
+  
+  const emailForm = document.getElementById('email-form');
+  const verifyForm = document.getElementById('verify-form');
+  const emailInput = document.getElementById('email');
+  const codeInput = document.getElementById('code');
+  const sentEmailSpan = document.getElementById('sent-email');
+  
+  const emailMessage = document.getElementById('email-message');
+  const verifyMessage = document.getElementById('verify-message');
+  
+  const sendCodeBtn = document.getElementById('send-code-btn');
+  const verifyBtn = document.getElementById('verify-btn');
+  const resendLink = document.getElementById('resend-link');
+  const startOverLink = document.getElementById('start-over-link');
+  
+  const resultIcon = document.getElementById('result-icon');
+  const resultTitle = document.getElementById('result-title');
+  const resultMessage = document.getElementById('result-message');
+  
+  let currentEmail = '';
+  
+  function showMessage(element, message, type) {
+    element.textContent = message;
+    element.className = 'message ' + type;
+    element.classList.remove('hidden');
+  }
+  
+  function hideMessage(element) {
+    element.classList.add('hidden');
+  }
+  
+  function showStep(step) {
+    stepEmail.classList.add('hidden');
+    stepVerify.classList.add('hidden');
+    stepResult.classList.add('hidden');
+    step.classList.remove('hidden');
+  }
+  
+  function showResult(success, title, message) {
+    resultIcon.innerHTML = success ? '✓' : '✗';
+    resultIcon.className = 'result-icon ' + (success ? 'success' : 'error');
+    resultTitle.textContent = title;
+    resultMessage.textContent = message;
+    showStep(stepResult);
+  }
+  
+  async function sendCode() {
+    const email = emailInput.value.trim();
+    if (!email) return;
+    
+    currentEmail = email;
+    sendCodeBtn.disabled = true;
+    sendCodeBtn.textContent = 'Sending...';
+    hideMessage(emailMessage);
+    
+    try {
+      const response = await fetch(`/pending-submissions/${submissionId}/send-code/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({ email: email }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        sentEmailSpan.textContent = email;
+        showStep(stepVerify);
+        codeInput.focus();
+      } else {
+        showMessage(emailMessage, data.message || 'Failed to send code. Please try again.', 'error');
+      }
+    } catch (error) {
+      showMessage(emailMessage, 'Network error. Please try again.', 'error');
+    } finally {
+      sendCodeBtn.disabled = false;
+      sendCodeBtn.textContent = 'Send Verification Code';
+    }
+  }
+  
+  async function verifyCode() {
+    const code = codeInput.value.trim();
+    if (!code) return;
+    
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+    hideMessage(verifyMessage);
+    
+    try {
+      const response = await fetch(`/pending-submissions/${submissionId}/verify/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({ email: currentEmail, code: code }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.verified) {
+        showResult(true, 'Code correct', data.message || 'Your verification was successful.');
+      } else {
+        showMessage(verifyMessage, data.message || 'Code incorrect', 'error');
+      }
+    } catch (error) {
+      showMessage(verifyMessage, 'Network error. Please try again.', 'error');
+    } finally {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify Code';
+    }
+  }
+  
+  // Event listeners
+  emailForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    sendCode();
+  });
+  
+  verifyForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    verifyCode();
+  });
+  
+  resendLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    showStep(stepEmail);
+    hideMessage(verifyMessage);
+  });
+  
+  startOverLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    emailInput.value = '';
+    codeInput.value = '';
+    currentEmail = '';
+    hideMessage(emailMessage);
+    hideMessage(verifyMessage);
+    showStep(stepEmail);
+  });
+})();
+</script>
+{% endblock %}

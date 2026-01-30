@@ -58,6 +58,11 @@ urlpatterns = [
         r'^superuser_stats/',
         include(('kobo.apps.superuser_stats.urls', 'superuser_stats')),
     ),
+    # Pending submissions verification
+    path(
+        'pending-submissions/',
+        include('kobo.apps.pending_submissions.urls'),
+    ),
     path('logout-all/', logout_from_all_devices, name='logout_all'),
 ]
 
