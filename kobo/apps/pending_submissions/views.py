@@ -704,16 +704,3 @@ class EnketoEditProxyView(APIView):
                 {'error': t('Error generating Enketo link: %(error)s') % {'error': str(e)}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-            }, status=status.HTTP_200_OK)
-            
-        except jwt.ExpiredSignatureError:
-            return Response(
-                {'error': t('Token has expired. Please verify your email again.')},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        except jwt.InvalidTokenError:
-            return Response(
-                {'error': t('Invalid token.')},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
