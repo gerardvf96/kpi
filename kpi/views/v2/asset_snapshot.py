@@ -1,8 +1,11 @@
 import copy
+import logging
 
 import requests
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
+
+logger = logging.getLogger(__name__)
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
@@ -329,23 +332,21 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
 
     def filter_queryset(self, queryset):
         # Debug: Log that filter_queryset is called
-        import datetime
-        import os
-        debug_msg = f"{datetime.datetime.now()}: filter_queryset called - action={self.action}, user={self.request.user}, path={self.request.path}\n"
-        debug_file = '/srv/tmp/filter_queryset_debug.txt'
-        os.makedirs(os.path.dirname(debug_file), exist_ok=True)
-        with open(debug_file, 'a') as f:
-            f.write(debug_msg)
-        print(debug_msg, flush=True)
+        logger.error(f"="*80)
+        logger.error(f"FILTER_QUERYSET called")
+        logger.error(f"  action={self.action}")
+        logger.error(f"  user={self.request.user} (anonymous={self.request.user.is_anonymous})")
+        logger.error(f"  path={self.request.path}")
+        logger.error(f"  cookies={list(self.request.COOKIES.keys())}")
         
         # DRASTIC FIX: Check for JWT token early and authenticate inline
         if self.request.user.is_anonymous:
             # Try to authenticate via JWT token from cookie or query param
             token = self.request.COOKIES.get('pending_submission_token') or self.request.GET.get('pending_token')
+            logger.error(f"  JWT token present: {bool(token)}")
             if token:
                 try:
                     import jwt
-                    from django.conf import settings
                     from kpi.models import Asset
                     
                     # Decode JWT
@@ -353,16 +354,15 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
                     submission_id = payload.get('submission_id')
                     email = payload.get('email')
                     
-                    debug_msg = f"  JWT found! submission_id={submission_id}, email={email}\n"
-                    with open(debug_file, 'a') as f:
-                        f.write(debug_msg)
-                    print(debug_msg, flush=True)
+                    logger.error(f"  JWT DECODED: submission_id={submission_id}, email={email}")
                     
                     # Find the asset by searching submissions
+                    assets_checked = 0
                     for asset in Asset.objects.filter(asset_type='survey'):
                         if not hasattr(asset, 'deployment') or not asset.deployment:
                             continue
                         
+                        assets_checked += 1
                         submissions = asset.deployment.get_submissions(
                             user=asset.owner,
                             query={"meta/rootUuid": f"uuid:{submission_id}"},
@@ -374,16 +374,13 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
                             # Found the submission! Set user to asset owner
                             self.request.user = asset.owner
                             self.request._user = asset.owner
-                            debug_msg = f"  Authenticated as {asset.owner.username}!\n"
-                            with open(debug_file, 'a') as f:
-                                f.write(debug_msg)
-                            print(debug_msg, flush=True)
+                            logger.error(f"  ✓ AUTHENTICATED as {asset.owner.username} (checked {assets_checked} assets)")
                             break
+                    else:
+                        logger.error(f"  ✗ Submission not found (checked {assets_checked} assets)")
                 except Exception as e:
-                    debug_msg = f"  JWT auth failed: {e}\n"
-                    with open(debug_file, 'a') as f:
-                        f.write(debug_msg)
-                    print(debug_msg, flush=True)
+                    logger.error(f"  ✗ JWT AUTH FAILED: {type(e).__name__}: {e}")
+                    logger.exception("JWT auth exception:")
         
         if (
             self.action in ['submission', 'form_list', 'manifest']
@@ -434,13 +431,36 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
         return Response(serializer.data, headers=self.get_headers())
 
     def get_object(self):
+        uid = self.kwargs[self.lookup_field]
+        logger.error(f"GET_OBJECT called")
+        logger.error(f"  Looking for uid={uid}")
+        logger.error(f"  Current user={self.request.user} (anonymous={self.request.user.is_anonymous})")
+        
+        # Check if snapshot exists at all
+        all_snapshots = AssetSnapshot.objects.filter(uid=uid)
+        logger.error(f"  Total snapshots with uid={uid}: {all_snapshots.count()}")
+        
+        if all_snapshots.exists():
+            snapshot_info = all_snapshots.first()
+            logger.error(f"  Snapshot exists! owner={snapshot_info.owner.username}, asset={snapshot_info.asset.uid}")
+        else:
+            logger.error(f"  ✗ NO SNAPSHOT EXISTS with uid={uid}")
+        
+        # Now try with filtered queryset
+        queryset = self.filter_queryset(self.get_queryset())
+        filtered_count = queryset.filter(uid=uid).count()
+        logger.error(f"  After filter_queryset: {filtered_count} snapshots")
+        
         try:
             snapshot = (
-                self.queryset.select_related('asset')
+                queryset.select_related('asset')
                 .defer('asset__content')
-                .get(uid=self.kwargs[self.lookup_field])
+                .get(uid=uid)
             )
+            logger.error(f"  ✓ SUCCESS: Found snapshot in filtered queryset")
         except AssetSnapshot.DoesNotExist:
+            logger.error(f"  ✗ ERROR: Snapshot NOT in filtered queryset! Raising Http404")
+            logger.error(f"="*80)
             raise Http404
 
         self._asset = snapshot.asset
