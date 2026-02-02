@@ -37,12 +37,15 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
         logger = logging.getLogger(__name__)
         
         # DEBUG: Write to file for easy debugging
-        import os
-        debug_file = os.path.join(os.path.dirname(__file__), 'debug_auth.log')
-        with open(debug_file, 'a') as f:
-            f.write(f'\n=== AUTH CHECK: {request.path} ===\n')
-            f.write(f'Cookies: {list(request.COOKIES.keys())}\n')
-            f.write(f'Has pending_submission_token: {"pending_submission_token" in request.COOKIES}\n')
+        import tempfile
+        debug_file = tempfile.gettempdir() + '/pending_submission_auth_debug.log'
+        try:
+            with open(debug_file, 'a') as f:
+                f.write(f'\n=== AUTH CHECK: {request.path} ===\n')
+                f.write(f'Cookies: {list(request.COOKIES.keys())}\n')
+                f.write(f'Has pending_submission_token: {"pending_submission_token" in request.COOKIES}\n')
+        except:
+            pass  # Ignore file write errors
         
         # Get JWT token from cookie or query parameter
         # Cookie is used for browser requests, query param for Enketo server requests
@@ -53,13 +56,19 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
         if not token:
             # No JWT token present, let other authentication methods try
             logger.debug(f'PendingSubmissionJWT: No token found in cookies or query params for {request.path}')
-            with open(debug_file, 'a') as f:
-                f.write('Result: NO TOKEN FOUND\n')
+            try:
+                with open(debug_file, 'a') as f:
+                    f.write('Result: NO TOKEN FOUND\n')
+            except:
+                pass
             return None
         
         logger.info(f'PendingSubmissionJWT: Token found for {request.path}, attempting authentication')
-        with open(debug_file, 'a') as f:
-            f.write(f'Result: TOKEN FOUND, attempting auth\n')
+        try:
+            with open(debug_file, 'a') as f:
+                f.write(f'Result: TOKEN FOUND, attempting auth\n')
+        except:
+            pass
         
         try:
             # Decode and validate JWT
@@ -136,10 +145,13 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
             logger.info(f'PendingSubmissionJWT: Authentication successful for {email} on asset {asset.uid}')
             
             # DEBUG: Write success to file
-            import os
-            debug_file = os.path.join(os.path.dirname(__file__), 'debug_auth.log')
-            with open(debug_file, 'a') as f:
-                f.write(f'Result: AUTH SUCCESS for {email} on asset {asset.uid}\n')
+            import tempfile
+            debug_file = tempfile.gettempdir() + '/pending_submission_auth_debug.log'
+            try:
+                with open(debug_file, 'a') as f:
+                    f.write(f'Result: AUTH SUCCESS for {email} on asset {asset.uid}\n')
+            except:
+                pass
             
             auth_dict = {
                 'submission_id': submission_id,
@@ -153,25 +165,34 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
             
         except jwt.ExpiredSignatureError:
             logger.warning('PendingSubmissionJWT: Token has expired')
-            import os
-            debug_file = os.path.join(os.path.dirname(__file__), 'debug_auth.log')
-            with open(debug_file, 'a') as f:
-                f.write('Result: TOKEN EXPIRED\n')
+            import tempfile
+            debug_file = tempfile.gettempdir() + '/pending_submission_auth_debug.log'
+            try:
+                with open(debug_file, 'a') as f:
+                    f.write('Result: TOKEN EXPIRED\n')
+            except:
+                pass
             raise AuthenticationFailed('Token has expired')
         except jwt.InvalidTokenError as e:
             logger.warning(f'PendingSubmissionJWT: Invalid token - {str(e)}')
-            import os
-            debug_file = os.path.join(os.path.dirname(__file__), 'debug_auth.log')
-            with open(debug_file, 'a') as f:
-                f.write(f'Result: INVALID TOKEN - {str(e)}\n')
+            import tempfile
+            debug_file = tempfile.gettempdir() + '/pending_submission_auth_debug.log'
+            try:
+                with open(debug_file, 'a') as f:
+                    f.write(f'Result: INVALID TOKEN - {str(e)}\n')
+            except:
+                pass
             raise AuthenticationFailed('Invalid token')
         except Exception as e:
             # Log the error but don't expose details to client
             logger.error(f'PendingSubmissionJWT: JWT authentication error: {str(e)}', exc_info=True)
-            import os
-            debug_file = os.path.join(os.path.dirname(__file__), 'debug_auth.log')
-            with open(debug_file, 'a') as f:
-                f.write(f'Result: ERROR - {str(e)}\n')
+            import tempfile
+            debug_file = tempfile.gettempdir() + '/pending_submission_auth_debug.log'
+            try:
+                with open(debug_file, 'a') as f:
+                    f.write(f'Result: ERROR - {str(e)}\n')
+            except:
+                pass
             raise AuthenticationFailed('Authentication failed')
     
     def authenticate_header(self, request):
