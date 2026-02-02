@@ -295,7 +295,7 @@ class VerifyCodeView(APIView):
                 httponly=True,
                 secure=False,  # Allow for localhost development
                 domain='.kobo.local',  # Accessible across kpi and enketo subdomains
-                samesite='None'  # Required for cross-domain cookie with secure=False workaround
+                samesite='Lax'  # Allow same-site and top-level navigation
             )
             return response
         else:
