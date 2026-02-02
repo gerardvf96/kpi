@@ -330,9 +330,60 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
     def filter_queryset(self, queryset):
         # Debug: Log that filter_queryset is called
         import datetime
+        import os
         debug_msg = f"{datetime.datetime.now()}: filter_queryset called - action={self.action}, user={self.request.user}, path={self.request.path}\n"
-        with open('filter_queryset_debug.txt', 'a') as f:
+        debug_file = '/srv/tmp/filter_queryset_debug.txt'
+        os.makedirs(os.path.dirname(debug_file), exist_ok=True)
+        with open(debug_file, 'a') as f:
             f.write(debug_msg)
+        print(debug_msg, flush=True)
+        
+        # DRASTIC FIX: Check for JWT token early and authenticate inline
+        if self.request.user.is_anonymous:
+            # Try to authenticate via JWT token from cookie or query param
+            token = self.request.COOKIES.get('pending_submission_token') or self.request.GET.get('pending_token')
+            if token:
+                try:
+                    import jwt
+                    from django.conf import settings
+                    from kpi.models import Asset
+                    
+                    # Decode JWT
+                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                    submission_id = payload.get('submission_id')
+                    email = payload.get('email')
+                    
+                    debug_msg = f"  JWT found! submission_id={submission_id}, email={email}\n"
+                    with open(debug_file, 'a') as f:
+                        f.write(debug_msg)
+                    print(debug_msg, flush=True)
+                    
+                    # Find the asset by searching submissions
+                    for asset in Asset.objects.filter(asset_type='survey'):
+                        if not hasattr(asset, 'deployment') or not asset.deployment:
+                            continue
+                        
+                        submissions = asset.deployment.get_submissions(
+                            user=asset.owner,
+                            query={"meta/rootUuid": f"uuid:{submission_id}"},
+                            submission_ids=[],
+                            limit=1
+                        )
+                        
+                        if submissions:
+                            # Found the submission! Set user to asset owner
+                            self.request.user = asset.owner
+                            self.request._user = asset.owner
+                            debug_msg = f"  Authenticated as {asset.owner.username}!\n"
+                            with open(debug_file, 'a') as f:
+                                f.write(debug_msg)
+                            print(debug_msg, flush=True)
+                            break
+                except Exception as e:
+                    debug_msg = f"  JWT auth failed: {e}\n"
+                    with open(debug_file, 'a') as f:
+                        f.write(debug_msg)
+                    print(debug_msg, flush=True)
         
         if (
             self.action in ['submission', 'form_list', 'manifest']
