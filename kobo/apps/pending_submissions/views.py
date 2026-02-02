@@ -293,8 +293,9 @@ class VerifyCodeView(APIView):
                 access_token,
                 max_age=3600,  # 1 hour
                 httponly=True,
-                secure=settings.SECURE_COOKIES if hasattr(settings, 'SECURE_COOKIES') else True,
-                samesite='Lax'
+                secure=False,  # Allow for localhost development
+                domain='.kobo.local',  # Accessible across kpi and enketo subdomains
+                samesite='None'  # Required for cross-domain cookie with secure=False workaround
             )
             return response
         else:
@@ -340,21 +341,26 @@ class VerifyCodeView(APIView):
                         submissions = list(deployment.get_submissions(
                             user=admin_user,
                             query=query,
-                            fields=['_id', '_submission_status', 'end']
+                            fields=['_id', '_submission_status', 'end', '_submission_recipients', 'meta/rootUuid']
                         ))
                         
                         if submissions:
                             submission_data = submissions[0]
                             last_edit_date = submission_data.get('end', '')
                             submission_status = submission_data.get('_submission_status', 'pending')
+                            recipients = submission_data.get('_submission_recipients', '')
+                            root_uuid = submission_data.get('meta/rootUuid', '')
+                            # Extract UUID without 'uuid:' prefix
+                            root_uuid_clean = root_uuid.replace('uuid:', '') if root_uuid else submission_id
                             
-                            # Generate Enketo edit URL
-                            enketo_edit_url = self._generate_enketo_edit_url(submission_id)
+                            # Generate Enketo edit URL using our proxy
+                            enketo_edit_url = self._generate_enketo_edit_url(root_uuid_clean)
                             
                             return {
                                 'form_name': asset.name,
                                 'last_edit_date': last_edit_date,
                                 'status': submission_status,
+                                'recipients': recipients,
                                 'enketo_edit_url': enketo_edit_url,
                                 'asset_uid': asset.uid,
                             }
@@ -366,7 +372,8 @@ class VerifyCodeView(APIView):
                 'form_name': 'Unknown',
                 'last_edit_date': '',
                 'status': 'pending',
-                'enketo_edit_url': self._generate_enketo_edit_url(submission_id),
+                'recipients': '',
+                'enketo_edit_url': '',
                 'asset_uid': '',
             }
         except Exception:
@@ -374,7 +381,8 @@ class VerifyCodeView(APIView):
                 'form_name': 'Unknown',
                 'last_edit_date': '',
                 'status': 'pending',
-                'enketo_edit_url': self._generate_enketo_edit_url(submission_id),
+                'recipients': '',
+                'enketo_edit_url': '',
                 'asset_uid': '',
             }
     
@@ -401,7 +409,14 @@ class VerifyCodeView(APIView):
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
         return token
     
-    def _generate_enketo_edit_url(self, submission_id: str) -> str:
+    def _generate_enketo_edit_url(self, root_uuid_clean: str) -> str:
+        """Generate the Enketo edit URL using our proxy endpoint.
+        
+        This URL points to our proxy which validates JWT and redirects to Enketo.
+        """
+        base_url = settings.KOBOFORM_URL.rstrip('/')
+        # Point to our proxy endpoint which will handle the Enketo API call and redirect
+        return f"{base_url}/pending-submissions/{root_uuid_clean}/enketo/redirect/edit/"
         """
         Generate the Enketo edit URL that proxies through our authentication.
         
@@ -420,6 +435,261 @@ class VerifyCodeView(APIView):
 
 
 class EnketoEditProxyView(APIView):
+    """
+    Proxy endpoint for Enketo edit access with JWT authentication.
+    
+    This view validates the JWT token (from cookie or header) and then
+    internally calls the Enketo API to get an edit URL and redirects to it.
+    
+    For anonymous users editing pending submissions, this provides
+    a way to authenticate without platform credentials.
+    """
+    
+    permission_classes = (AllowAny,)
+    
+    def get(self, request, submission_id):
+        """
+        Handle GET request to edit submission in Enketo.
+        
+        Validates JWT token, calls Enketo API, and redirects to edit URL.
+        """
+        # Extract JWT token from cookie or Authorization header
+        token = request.COOKIES.get('pending_submission_token')
+        if not token:
+            auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+            if auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+        
+        if not token:
+            return Response(
+                {'error': t('Authentication required. Please verify your email first.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Validate JWT token
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            
+            # Verify token type
+            if payload.get('type') != 'pending_submission_access':
+                return Response(
+                    {'error': t('Invalid token type.')},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Verify submission_id matches
+            token_submission_id = payload.get('submission_id', '')
+            # Normalize both submission IDs for comparison
+            token_sub_id = token_submission_id.replace('uuid:', '')
+            current_sub_id = submission_id.replace('uuid:', '')
+            
+            if token_sub_id != current_sub_id:
+                return Response(
+                    {'error': t('Token does not match this submission.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            email = payload.get('email', '')
+            
+            # Find the asset and submission
+            asset, submission_json = self._find_submission_and_asset(submission_id)
+            
+            if not asset or not submission_json:
+                return Response(
+                    {'error': t('Submission not found.')},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Verify email is still in recipients (additional security check)
+            recipients = submission_json.get('_submission_recipients', '')
+            if isinstance(recipients, str):
+                recipient_emails = recipients.split()
+            else:
+                recipient_emails = []
+            
+            if email not in recipient_emails:
+                return Response(
+                    {'error': t('Access denied. Email not authorized for this submission.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Verify submission is still pending
+            if submission_json.get('_submission_status') != 'pending':
+                return Response(
+                    {'error': t('This submission is no longer pending and cannot be edited.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Generate Enketo edit link and redirect immediately (URL expires in 30s)
+            enketo_url = self._get_enketo_edit_url(
+                request, asset, submission_json
+            )
+            
+            if enketo_url:
+                return HttpResponseRedirect(enketo_url)
+            else:
+                return Response(
+                    {'error': t('Failed to generate Enketo edit link.')},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+        except jwt.ExpiredSignatureError:
+            return Response(
+                {'error': t('Token has expired. Please verify your email again.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except jwt.InvalidTokenError:
+            return Response(
+                {'error': t('Invalid token.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception as e:
+            return Response(
+                {'error': t('Error processing request: %(error)s') % {'error': str(e)}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _find_submission_and_asset(self, submission_id: str) -> tuple[Asset | None, dict | None]:
+        """
+        Find the asset and submission by rootUuid.
+        
+        Returns: (asset, submission_json) or (None, None) if not found
+        """
+        try:
+            User = get_user_model()
+            admin_user = User.objects.filter(is_superuser=True).first()
+            
+            if not admin_user:
+                return None, None
+            
+            # Query format
+            query = {
+                "meta/rootUuid": f"uuid:{submission_id}" if not submission_id.startswith('uuid:') else submission_id
+            }
+            
+            # Search for the submission across all deployed assets
+            assets = Asset.objects.filter(asset_type='survey')
+            
+            for asset in assets:
+                try:
+                    if not asset.has_deployment:
+                        continue
+                    deployment = asset.deployment
+                    submissions = list(deployment.get_submissions(
+                        user=admin_user,
+                        query=query,
+                        format_type=SUBMISSION_FORMAT_TYPE_JSON,
+                    ))
+                    
+                    if submissions:
+                        return asset, submissions[0]
+                except Exception:
+                    continue
+            
+            return None, None
+        except Exception:
+            return None, None
+    
+    def _get_enketo_edit_url(
+        self, 
+        request, 
+        asset: Asset,
+        submission_json: dict
+    ) -> str | None:
+        """
+        Generate Enketo edit URL by calling the Enketo API directly.
+        
+        This creates a temporary edit URL that expires in 30 seconds.
+        """
+        try:
+            deployment = asset.deployment
+            User = get_user_model()
+            admin_user = User.objects.filter(is_superuser=True).first()
+            
+            # Get submission ID from JSON (internal _id)
+            internal_submission_id = submission_json.get('_id')
+            
+            if not internal_submission_id:
+                return None
+            
+            # Get the XML version for Enketo
+            submission_xml = deployment.get_submission(
+                internal_submission_id, 
+                admin_user, 
+                SUBMISSION_FORMAT_TYPE_XML
+            )
+            
+            if isinstance(submission_xml, str):
+                submission_xml = submission_xml.encode()
+            
+            submission_xml_root = fromstring_preserve_root_xmlns(submission_xml)
+            
+            # Add mandatory XML elements if missing
+            el = get_or_create_element(
+                submission_xml_root, deployment.FORM_UUID_XPATH
+            )
+            if not el or not el.text.strip():
+                form_uuid = deployment.backend_response['uuid']
+                el.text = form_uuid
+            
+            el = get_or_create_element(
+                submission_xml_root, deployment.SUBMISSION_CURRENT_UUID_XPATH
+            )
+            if not el or not el.text.strip():
+                el.text = 'uuid:' + submission_json['_uuid']
+            
+            # Use the latest deployed version
+            version_uid = asset.latest_deployed_version.uid
+            
+            # Get XML root node name from submission
+            xml_root_node_name = submission_xml_root.tag
+            
+            # Create snapshot
+            snapshot = asset.snapshot(
+                regenerate=True,
+                root_node_name=xml_root_node_name,
+                version_uid=version_uid,
+                submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
+            )
+            
+            # Prepare data for Enketo API
+            data = {
+                'server_url': reverse(
+                    viewname='assetsnapshot-detail',
+                    kwargs={'uid_asset_snapshot': snapshot.uid},
+                    request=request,
+                ),
+                'instance': xml_tostring(submission_xml_root),
+                'instance_id': submission_json['_uuid'],
+                'form_id': snapshot.uid,
+                'return_url': 'false'
+            }
+            
+            # Add attachments if any
+            attachments = deployment.get_attachment_objects_from_dict(submission_json)
+            for attachment in attachments:
+                key_ = f'instance_attachments[{attachment.media_file_basename}]'
+                data[key_] = reverse(
+                    'attachment-detail',
+                    args=(asset.uid, internal_submission_id, attachment.uid),
+                    request=request,
+                )
+            
+            # Make request to Enketo API
+            response = requests.post(
+                f'{settings.ENKETO_URL}/{settings.ENKETO_EDIT_INSTANCE_ENDPOINT}',
+                auth=(settings.ENKETO_API_KEY, ''),
+                data=data
+            )
+            
+            if response.status_code != status.HTTP_201_CREATED:
+                return None
+            
+            json_response = response.json()
+            return json_response.get('edit_url')
+            
+        except Exception:
+            return None
     """
     Proxy endpoint for Enketo edit access with JWT authentication.
     

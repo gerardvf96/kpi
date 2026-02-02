@@ -298,6 +298,10 @@
           <span class="status-badge pending" id="info-status">Pending</span>
         </span>
       </div>
+      <div class="info-row">
+        <span class="info-label">Allowed Recipients:</span>
+        <span class="info-value" id="info-recipients"></span>
+      </div>
       
       <!-- Edit Button -->
       <a href="#" id="enketo-edit-link" class="edit-button" target="_blank">
@@ -343,6 +347,7 @@
   const infoFormName = document.getElementById('info-form-name');
   const infoLastEdit = document.getElementById('info-last-edit');
   const infoStatus = document.getElementById('info-status');
+  const infoRecipients = document.getElementById('info-recipients');
   const enketoEditLink = document.getElementById('enketo-edit-link');
   
   let currentEmail = '';
@@ -376,10 +381,11 @@
       infoFormName.textContent = info.form_name || 'Unknown';
       infoLastEdit.textContent = info.last_edit_date || 'N/A';
       infoStatus.textContent = info.status || 'pending';
+      infoRecipients.textContent = info.recipients || 'N/A';
       
       if (info.enketo_edit_url) {
-        // Use the redirect URL for direct navigation to Enketo
-        enketoEditLink.href = info.enketo_edit_url.replace('/enketo/edit/', '/enketo/redirect/edit/');
+        // Use the URL directly - it already points to the redirect endpoint
+        enketoEditLink.href = info.enketo_edit_url;
       }
       
       submissionInfo.classList.remove('hidden');

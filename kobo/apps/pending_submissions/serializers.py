@@ -39,6 +39,9 @@ class SubmissionInfoSerializer(serializers.Serializer):
     status = serializers.CharField(
         help_text='Current status of the submission'
     )
+    recipients = serializers.CharField(
+        help_text='Space-separated list of allowed recipient emails'
+    )
     enketo_edit_url = serializers.URLField(
         help_text='URL to edit the submission in Enketo'
     )
