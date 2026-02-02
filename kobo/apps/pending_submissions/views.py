@@ -7,12 +7,12 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
-from django.urls import reverse
 from django.utils.translation import gettext as t
 from rest_framework import status
 from rest_framework.pagination import _positive_int as positive_int
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 
 from kobo.apps.openrosa.apps.logger.xform_instance_parser import remove_uuid_prefix
@@ -417,21 +417,6 @@ class VerifyCodeView(APIView):
         base_url = settings.KOBOFORM_URL.rstrip('/')
         # Point to our proxy endpoint which will handle the Enketo API call and redirect
         return f"{base_url}/pending-submissions/{root_uuid_clean}/enketo/redirect/edit/"
-        """
-        Generate the Enketo edit URL that proxies through our authentication.
-        
-        This URL points to our proxy endpoint which validates the JWT token
-        before redirecting to the actual Enketo edit URL.
-        """
-        from django.urls import reverse
-        base_url = settings.KOBOFORM_URL.rstrip('/')
-        
-        # Generate URL for our proxy endpoint
-        proxy_path = reverse(
-            'pending-submission-enketo-edit',
-            kwargs={'submission_id': submission_id}
-        )
-        return f"{base_url}{proxy_path}"
 
 
 class EnketoEditProxyView(APIView):
