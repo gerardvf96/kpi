@@ -154,14 +154,15 @@ class SendVerificationCodeView(APIView):
             }
             
             # Search for assets that might have this submission
-            # This is a simplified approach - you may need to optimize this
-            assets = Asset.objects.filter(asset_type='survey', has_deployment=True)
+            assets = Asset.objects.filter(asset_type='survey')
             
             submission_data = None
             found_asset = None
             
             for asset in assets:
                 try:
+                    if not asset.has_deployment:
+                        continue
                     deployment = asset.deployment
                     # Use the superuser to bypass permissions for this check
                     from django.contrib.auth import get_user_model
@@ -172,7 +173,7 @@ class SendVerificationCodeView(APIView):
                         submissions = list(deployment.get_submissions(
                             user=admin_user,
                             query=query,
-                            fields=['_id', '_submission_status', '_submission_recipients', 'meta/rootUuid', 'end']
+                            fields=['_submission_status', '_submission_recipients']
                         ))
                         
                         if submissions:
@@ -328,16 +329,18 @@ class VerifyCodeView(APIView):
             User = get_user_model()
             admin_user = User.objects.filter(is_superuser=True).first()
             
-            assets = Asset.objects.filter(asset_type='survey', has_deployment=True)
+            assets = Asset.objects.filter(asset_type='survey')
             
             for asset in assets:
                 try:
+                    if not asset.has_deployment:
+                        continue
                     deployment = asset.deployment
                     if admin_user:
                         submissions = list(deployment.get_submissions(
                             user=admin_user,
                             query=query,
-                            fields=['_id', '_submission_status', 'end', 'meta/rootUuid']
+                            fields=['_id', '_submission_status', 'end']
                         ))
                         
                         if submissions:
@@ -556,10 +559,12 @@ class EnketoEditProxyView(APIView):
             }
             
             # Search for the submission across all deployed assets
-            assets = Asset.objects.filter(asset_type='survey', has_deployment=True)
+            assets = Asset.objects.filter(asset_type='survey')
             
             for asset in assets:
                 try:
+                    if not asset.has_deployment:
+                        continue
                     deployment = asset.deployment
                     submissions = list(deployment.get_submissions(
                         user=admin_user,
