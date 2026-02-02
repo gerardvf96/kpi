@@ -1813,6 +1813,11 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': True
         },
+        'kobo.apps.pending_submissions': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
     }
 }
 
