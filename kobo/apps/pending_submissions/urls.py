@@ -2,6 +2,7 @@
 from django.urls import path
 
 from .views import (
+    EnketoEditProxyView,
     PendingSubmissionPageView,
     SendVerificationCodeView,
     VerifyCodeView,
@@ -26,5 +27,17 @@ urlpatterns = [
         '<str:submission_id>/verify/',
         VerifyCodeView.as_view(),
         name='pending-submission-verify'
+    ),
+    # Enketo edit proxy (authenticates with JWT then returns Enketo URL)
+    path(
+        '<str:submission_id>/enketo/edit/',
+        EnketoEditProxyView.as_view(),
+        name='pending-submission-enketo-edit'
+    ),
+    # Enketo edit redirect (authenticates with JWT then redirects to Enketo)
+    path(
+        '<str:submission_id>/enketo/redirect/edit/',
+        EnketoEditProxyView.as_view(),
+        name='pending-submission-enketo-redirect-edit'
     ),
 ]

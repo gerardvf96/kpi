@@ -160,6 +160,80 @@
     .back-link a:hover {
       text-decoration: underline;
     }
+    
+    .submission-info {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .submission-info h3 {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      color: #333;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 10px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      font-weight: 500;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .info-value {
+      color: #333;
+      font-size: 14px;
+      text-align: right;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    
+    .status-badge.pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .edit-button {
+      display: inline-block;
+      width: 100%;
+      padding: 14px;
+      background-color: #28a745;
+      color: white;
+      text-align: center;
+      text-decoration: none;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 15px;
+    }
+    
+    .edit-button:hover {
+      background-color: #218838;
+    }
   </style>
 {% endblock %}
 
@@ -207,6 +281,30 @@
     <h1 id="result-title"></h1>
     <p class="subtitle" id="result-message"></p>
     
+    <!-- Submission Info (shown on success) -->
+    <div id="submission-info" class="submission-info hidden">
+      <h3>Submission Details</h3>
+      <div class="info-row">
+        <span class="info-label">Form Name:</span>
+        <span class="info-value" id="info-form-name"></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Last Edit:</span>
+        <span class="info-value" id="info-last-edit"></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Status:</span>
+        <span class="info-value">
+          <span class="status-badge pending" id="info-status">Pending</span>
+        </span>
+      </div>
+      
+      <!-- Edit Button -->
+      <a href="#" id="enketo-edit-link" class="edit-button" target="_blank">
+        Edit Submission in Enketo
+      </a>
+    </div>
+    
     <div class="back-link">
       <a href="#" id="start-over-link">Start over</a>
     </div>
@@ -241,6 +339,12 @@
   const resultTitle = document.getElementById('result-title');
   const resultMessage = document.getElementById('result-message');
   
+  const submissionInfo = document.getElementById('submission-info');
+  const infoFormName = document.getElementById('info-form-name');
+  const infoLastEdit = document.getElementById('info-last-edit');
+  const infoStatus = document.getElementById('info-status');
+  const enketoEditLink = document.getElementById('enketo-edit-link');
+  
   let currentEmail = '';
   
   function showMessage(element, message, type) {
@@ -260,11 +364,29 @@
     step.classList.remove('hidden');
   }
   
-  function showResult(success, title, message) {
+  function showResult(success, title, message, submissionData) {
     resultIcon.innerHTML = success ? '✓' : '✗';
     resultIcon.className = 'result-icon ' + (success ? 'success' : 'error');
     resultTitle.textContent = title;
     resultMessage.textContent = message;
+    
+    // Show submission info if verification was successful and data is available
+    if (success && submissionData && submissionData.submission_info) {
+      const info = submissionData.submission_info;
+      infoFormName.textContent = info.form_name || 'Unknown';
+      infoLastEdit.textContent = info.last_edit_date || 'N/A';
+      infoStatus.textContent = info.status || 'pending';
+      
+      if (info.enketo_edit_url) {
+        // Use the redirect URL for direct navigation to Enketo
+        enketoEditLink.href = info.enketo_edit_url.replace('/enketo/edit/', '/enketo/redirect/edit/');
+      }
+      
+      submissionInfo.classList.remove('hidden');
+    } else {
+      submissionInfo.classList.add('hidden');
+    }
+    
     showStep(stepResult);
   }
   
@@ -325,7 +447,7 @@
       const data = await response.json();
       
       if (response.ok && data.verified) {
-        showResult(true, 'Code correct', data.message || 'Your verification was successful.');
+        showResult(true, 'Code correct', data.message || 'Your verification was successful.', data);
       } else {
         showMessage(verifyMessage, data.message || 'Code incorrect', 'error');
       }
