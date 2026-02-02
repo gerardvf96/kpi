@@ -328,8 +328,14 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
         return self._asset
 
     def filter_queryset(self, queryset):
+        # Debug: Log that filter_queryset is called
+        import datetime
+        debug_msg = f"{datetime.datetime.now()}: filter_queryset called - action={self.action}, user={self.request.user}, path={self.request.path}\n"
+        with open('filter_queryset_debug.txt', 'a') as f:
+            f.write(debug_msg)
+        
         if (
-            self.action == 'submission'
+            self.action in ['submission', 'form_list', 'manifest']
             or (
                 self.action == 'retrieve'
                 and self.request.accepted_renderer.format == 'xml'
@@ -340,9 +346,10 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
             # /asset_snapshot/valid_uid/ requires ownership. Return the
             # queryset unfiltered
 
-            # If action is 'submission', we also need to return the queryset
-            # unfiltered to avoid returning a 404 if user has not been authenticated
-            # yet. The filtering will be handled by the `submission()` method itself.
+            # If action is 'submission', 'form_list', or 'manifest',
+            # we also need to return the queryset unfiltered to avoid returning
+            # a 404 if user has not been authenticated yet. The filtering will
+            # be handled by the permission checks in each method.
             return queryset
         else:
             user = self.request.user
