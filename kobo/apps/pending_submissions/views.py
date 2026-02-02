@@ -508,7 +508,7 @@ class EnketoEditProxyView(APIView):
             
             # Generate Enketo edit link and redirect immediately (URL expires in 30s)
             enketo_url = self._get_enketo_edit_url(
-                request, asset, submission_json
+                request, asset, submission_json, token
             )
             
             if enketo_url:
@@ -580,12 +580,14 @@ class EnketoEditProxyView(APIView):
         self, 
         request, 
         asset: Asset,
-        submission_json: dict
+        submission_json: dict,
+        jwt_token: str
     ) -> str | None:
         """
         Generate Enketo edit URL by calling the Enketo API directly.
         
         This creates a temporary edit URL that expires in 30 seconds.
+        The JWT token is appended to server_url so Enketo's server can authenticate.
         """
         try:
             deployment = asset.deployment

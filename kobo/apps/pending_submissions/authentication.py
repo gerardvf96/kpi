@@ -22,22 +22,33 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
     
     def authenticate(self, request):
         """
-        Attempt to authenticate using JWT token from cookie.
+        Attempt to authenticate using JWT token from cookie or query parameter.
+        
+        Checks both cookie (for browser requests) and query parameter (for Enketo server requests).
         
         Returns:
             tuple: (user, auth_dict) if authentication succeeds
-            None: if no JWT cookie present (allow other auth to proceed)
+            None: if no JWT token present (allow other auth to proceed)
             
         Raises:
             AuthenticationFailed: if JWT is invalid or submission not accessible
         """
-        # Get JWT token from cookie
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Get JWT token from cookie or query parameter
+        # Cookie is used for browser requests, query param for Enketo server requests
         token = request.COOKIES.get('pending_submission_token')
+        if not token:
+            token = request.GET.get('pending_token')
         
         if not token:
             # No JWT token present, let other authentication methods try
+            logger.debug(f'PendingSubmissionJWT: No token found in cookies or query params for {request.path}')
             return None
-            
+        
+        logger.info(f'PendingSubmissionJWT: Token found for {request.path}, attempting authentication')
+        
         try:
             # Decode and validate JWT
             payload = jwt.decode(
@@ -110,6 +121,7 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
             # Authentication successful - return asset owner as user
             # and include submission/asset context in auth dict
             user = asset.owner
+            logger.info(f'PendingSubmissionJWT: Authentication successful for {email} on asset {asset.uid}')
             auth_dict = {
                 'submission_id': submission_id,
                 'email': email,
@@ -121,14 +133,14 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
             return (user, auth_dict)
             
         except jwt.ExpiredSignatureError:
+            logger.warning('PendingSubmissionJWT: Token has expired')
             raise AuthenticationFailed('Token has expired')
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            logger.warning(f'PendingSubmissionJWT: Invalid token - {str(e)}')
             raise AuthenticationFailed('Invalid token')
         except Exception as e:
             # Log the error but don't expose details to client
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f'JWT authentication error: {str(e)}', exc_info=True)
+            logger.error(f'PendingSubmissionJWT: JWT authentication error: {str(e)}', exc_info=True)
             raise AuthenticationFailed('Authentication failed')
     
     def authenticate_header(self, request):
