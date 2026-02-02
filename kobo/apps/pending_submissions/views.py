@@ -17,10 +17,11 @@ from rest_framework.views import APIView
 
 from kobo.apps.openrosa.apps.logger.xform_instance_parser import remove_uuid_prefix
 from kpi.authentication import EnketoSessionAuthentication
-from kpi.constants import SUBMISSION_FORMAT_TYPE_XML, SUBMISSION_FORMAT_TYPE_JSON
+from kpi.constants import API_NAMESPACES, SUBMISSION_FORMAT_TYPE_XML, SUBMISSION_FORMAT_TYPE_JSON
 from kpi.models import Asset
 from kpi.utils.mailer import EmailMessage, Mailer
 from kpi.utils.strings import to_str
+from kpi.utils.urls import versioned_reverse
 from kpi.utils.xml import (
     fromstring_preserve_root_xmlns,
     get_or_create_element,
@@ -639,10 +640,11 @@ class EnketoEditProxyView(APIView):
             
             # Prepare data for Enketo API
             data = {
-                'server_url': reverse(
+                'server_url': versioned_reverse(
                     viewname='assetsnapshot-detail',
                     kwargs={'uid_asset_snapshot': snapshot.uid},
                     request=request,
+                    url_namespace=API_NAMESPACES['default'],
                 ),
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
@@ -654,10 +656,11 @@ class EnketoEditProxyView(APIView):
             attachments = deployment.get_attachment_objects_from_dict(submission_json)
             for attachment in attachments:
                 key_ = f'instance_attachments[{attachment.media_file_basename}]'
-                data[key_] = reverse(
-                    'attachment-detail',
+                data[key_] = versioned_reverse(
+                    viewname='attachment-detail',
                     args=(asset.uid, internal_submission_id, attachment.uid),
                     request=request,
+                    url_namespace=API_NAMESPACES['default'],
                 )
             
             # Make request to Enketo API
@@ -904,10 +907,11 @@ class EnketoEditProxyView(APIView):
             
             # Prepare data for Enketo API
             data = {
-                'server_url': reverse(
+                'server_url': versioned_reverse(
                     viewname='assetsnapshot-detail',
                     kwargs={'uid_asset_snapshot': snapshot.uid},
                     request=request,
+                    url_namespace=API_NAMESPACES['default'],
                 ),
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
@@ -919,10 +923,11 @@ class EnketoEditProxyView(APIView):
             attachments = deployment.get_attachment_objects_from_dict(submission_json)
             for attachment in attachments:
                 key_ = f'instance_attachments[{attachment.media_file_basename}]'
-                data[key_] = reverse(
-                    'attachment-detail',
+                data[key_] = versioned_reverse(
+                    viewname='attachment-detail',
                     args=(asset.uid, internal_submission_id, attachment.uid),
                     request=request,
+                    url_namespace=API_NAMESPACES['default'],
                 )
             
             # Make request to Enketo API
