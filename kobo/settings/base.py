@@ -174,6 +174,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'kobo.apps.pending_submissions.middleware.PendingSubmissionAuthMiddleware',
     'kobo.apps.openrosa.libs.utils.middleware.RestrictedAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'kobo.apps.openrosa.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
@@ -1169,6 +1170,7 @@ OPENROSA_REST_FRAMEWORK = {
     #     'rest_framework.permissions.AllowAny',
     # ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'kobo.apps.pending_submissions.authentication.PendingSubmissionJWTAuthentication',
         'kpi.authentication.DigestAuthentication',
         'kpi.authentication.OAuth2Authentication',
         'kpi.authentication.TokenAuthentication',
