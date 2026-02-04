@@ -78,3 +78,21 @@ class SendCodeResponseSerializer(serializers.Serializer):
     message = serializers.CharField(
         help_text='A human-readable message about the operation'
     )
+
+
+class AddRecipientSerializer(serializers.Serializer):
+    """Serializer for adding a recipient."""
+    
+    email = serializers.EmailField(
+        required=True,
+        help_text='The email address to add as a recipient'
+    )
+
+
+class RemoveRecipientSerializer(serializers.Serializer):
+    """Serializer for removing a recipient."""
+    
+    email = serializers.EmailField(
+        required=True,
+        help_text='The email address to remove from recipients'
+    )

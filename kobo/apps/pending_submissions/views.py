@@ -35,6 +35,8 @@ from .models import (
     PendingSubmissionVerification,
 )
 from .serializers import (
+    AddRecipientSerializer,
+    RemoveRecipientSerializer,
     SendCodeResponseSerializer,
     SendVerificationCodeSerializer,
     SubmissionInfoSerializer,
@@ -1063,3 +1065,295 @@ class EnketoEditProxyView(APIView):
                 {'error': t('Error generating Enketo link: %(error)s') % {'error': str(e)}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class AddRecipientView(APIView):
+    """
+    API endpoint to add a recipient to a pending submission.
+    
+    Requires JWT authentication. Adds the email to _submission_recipients.
+    """
+    
+    permission_classes = (AllowAny,)
+    
+    def post(self, request, submission_id):
+        """Add a recipient email to the submission."""
+        # Validate JWT token
+        token = request.COOKIES.get('pending_submission_token')
+        if not token:
+            return Response(
+                {'error': t('Authentication required.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_submission_id = payload.get('submission_id', '').replace('uuid:', '')
+            current_sub_id = submission_id.replace('uuid:', '')
+            
+            if token_submission_id != current_sub_id:
+                return Response(
+                    {'error': t('Token does not match this submission.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            return Response(
+                {'error': t('Invalid or expired token.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Validate request data
+        serializer = AddRecipientSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_email = serializer.validated_data['email']
+        
+        # Find submission and asset
+        submission_json, asset = self._find_submission(submission_id)
+        
+        if not submission_json or not asset:
+            return Response(
+                {'error': t('Submission not found.')},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get current recipients
+        recipients = submission_json.get('_submission_recipients', '')
+        recipient_list = [r.strip() for r in recipients.split() if r.strip()]
+        
+        # Check if email already exists
+        if new_email in recipient_list:
+            return Response(
+                {'error': t('Email is already a recipient.')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Add new email
+        recipient_list.append(new_email)
+        updated_recipients = ' '.join(recipient_list)
+        
+        # Update submission
+        success = self._update_submission_recipients(
+            asset, submission_json, updated_recipients
+        )
+        
+        if success:
+            return Response(
+                {
+                    'success': True,
+                    'message': t('Recipient added successfully.'),
+                    'recipients': updated_recipients
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {'error': t('Failed to update submission.')},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _find_submission(self, submission_id):
+        """Find submission by rootUuid."""
+        User = get_user_model()
+        superuser = User.objects.filter(is_superuser=True).first()
+        
+        if not superuser:
+            return None, None
+        
+        query = {
+            "meta/rootUuid": f"uuid:{submission_id}" if not submission_id.startswith('uuid:') else submission_id
+        }
+        
+        for asset in Asset.objects.filter(asset_type='survey'):
+            if not hasattr(asset, 'deployment') or not asset.deployment:
+                continue
+            
+            try:
+                submissions = list(asset.deployment.get_submissions(
+                    user=superuser,
+                    query=query,
+                    submission_ids=[],
+                    limit=1
+                ))
+                
+                if submissions:
+                    return submissions[0], asset
+            except Exception:
+                continue
+        
+        return None, None
+    
+    def _update_submission_recipients(self, asset, submission_json, new_recipients):
+        """Update the _submission_recipients field in the submission."""
+        try:
+            User = get_user_model()
+            superuser = User.objects.filter(is_superuser=True).first()
+            
+            if not superuser:
+                return False
+            
+            deployment = asset.deployment
+            internal_submission_id = submission_json.get('_id')
+            
+            if not internal_submission_id:
+                return False
+            
+            # Update the submission with new recipients
+            update_data = {
+                '_submission_recipients': new_recipients
+            }
+            
+            deployment.edit_submission(
+                internal_submission_id,
+                update_data,
+                superuser
+            )
+            
+            return True
+        except Exception:
+            return False
+
+
+class RemoveRecipientView(APIView):
+    """
+    API endpoint to remove a recipient from a pending submission.
+    
+    Requires JWT authentication. Removes the email from _submission_recipients.
+    """
+    
+    permission_classes = (AllowAny,)
+    
+    def post(self, request, submission_id):
+        """Remove a recipient email from the submission."""
+        # Validate JWT token
+        token = request.COOKIES.get('pending_submission_token')
+        if not token:
+            return Response(
+                {'error': t('Authentication required.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_submission_id = payload.get('submission_id', '').replace('uuid:', '')
+            current_sub_id = submission_id.replace('uuid:', '')
+            
+            if token_submission_id != current_sub_id:
+                return Response(
+                    {'error': t('Token does not match this submission.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            return Response(
+                {'error': t('Invalid or expired token.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Validate request data
+        serializer = RemoveRecipientSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email_to_remove = serializer.validated_data['email']
+        
+        # Find submission and asset
+        submission_json, asset = self._find_submission(submission_id)
+        
+        if not submission_json or not asset:
+            return Response(
+                {'error': t('Submission not found.')},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get current recipients
+        recipients = submission_json.get('_submission_recipients', '')
+        recipient_list = [r.strip() for r in recipients.split() if r.strip()]
+        
+        # Check if email exists
+        if email_to_remove not in recipient_list:
+            return Response(
+                {'error': t('Email is not a recipient.')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Remove email
+        recipient_list.remove(email_to_remove)
+        updated_recipients = ' '.join(recipient_list)
+        
+        # Update submission
+        success = self._update_submission_recipients(
+            asset, submission_json, updated_recipients
+        )
+        
+        if success:
+            return Response(
+                {
+                    'success': True,
+                    'message': t('Recipient removed successfully.'),
+                    'recipients': updated_recipients
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {'error': t('Failed to update submission.')},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _find_submission(self, submission_id):
+        """Find submission by rootUuid."""
+        User = get_user_model()
+        superuser = User.objects.filter(is_superuser=True).first()
+        
+        if not superuser:
+            return None, None
+        
+        query = {
+            "meta/rootUuid": f"uuid:{submission_id}" if not submission_id.startswith('uuid:') else submission_id
+        }
+        
+        for asset in Asset.objects.filter(asset_type='survey'):
+            if not hasattr(asset, 'deployment') or not asset.deployment:
+                continue
+            
+            try:
+                submissions = list(asset.deployment.get_submissions(
+                    user=superuser,
+                    query=query,
+                    submission_ids=[],
+                    limit=1
+                ))
+                
+                if submissions:
+                    return submissions[0], asset
+            except Exception:
+                continue
+        
+        return None, None
+    
+    def _update_submission_recipients(self, asset, submission_json, new_recipients):
+        """Update the _submission_recipients field in the submission."""
+        try:
+            User = get_user_model()
+            superuser = User.objects.filter(is_superuser=True).first()
+            
+            if not superuser:
+                return False
+            
+            deployment = asset.deployment
+            internal_submission_id = submission_json.get('_id')
+            
+            if not internal_submission_id:
+                return False
+            
+            # Update the submission with new recipients
+            update_data = {
+                '_submission_recipients': new_recipients
+            }
+            
+            deployment.edit_submission(
+                internal_submission_id,
+                update_data,
+                superuser
+            )
+            
+            return True
+        except Exception:
+            return False

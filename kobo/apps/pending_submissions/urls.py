@@ -2,8 +2,10 @@
 from django.urls import path
 
 from .views import (
+    AddRecipientView,
     EnketoEditProxyView,
     PendingSubmissionPageView,
+    RemoveRecipientView,
     SendVerificationCodeView,
     VerifyCodeView,
 )
@@ -39,5 +41,17 @@ urlpatterns = [
         '<str:submission_id>/enketo/redirect/edit/',
         EnketoEditProxyView.as_view(),
         name='pending-submission-enketo-redirect-edit'
+    ),
+    # API endpoint to add a recipient
+    path(
+        '<str:submission_id>/add-recipient/',
+        AddRecipientView.as_view(),
+        name='pending-submission-add-recipient'
+    ),
+    # API endpoint to remove a recipient
+    path(
+        '<str:submission_id>/remove-recipient/',
+        RemoveRecipientView.as_view(),
+        name='pending-submission-remove-recipient'
     ),
 ]
