@@ -1197,18 +1197,20 @@ class AddRecipientView(APIView):
             if not internal_submission_id:
                 return False
             
-            # Update the submission with new recipients
-            update_data = {
-                '_submission_recipients': new_recipients
+            # Use bulk_update_submissions to update the recipients field
+            bulk_update_data = {
+                'submission_ids': [internal_submission_id],
+                'data': {
+                    '_submission_recipients': new_recipients
+                }
             }
             
-            deployment.edit_submission(
-                internal_submission_id,
-                update_data,
+            result = deployment.bulk_update_submissions(
+                bulk_update_data,
                 superuser
             )
             
-            return True
+            return result.get('status') == status.HTTP_200_OK
         except Exception:
             return False
 
@@ -1343,17 +1345,19 @@ class RemoveRecipientView(APIView):
             if not internal_submission_id:
                 return False
             
-            # Update the submission with new recipients
-            update_data = {
-                '_submission_recipients': new_recipients
+            # Use bulk_update_submissions to update the recipients field
+            bulk_update_data = {
+                'submission_ids': [internal_submission_id],
+                'data': {
+                    '_submission_recipients': new_recipients
+                }
             }
             
-            deployment.edit_submission(
-                internal_submission_id,
-                update_data,
+            result = deployment.bulk_update_submissions(
+                bulk_update_data,
                 superuser
             )
             
-            return True
+            return result.get('status') == status.HTTP_200_OK
         except Exception:
             return False
