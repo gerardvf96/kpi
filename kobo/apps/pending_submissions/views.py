@@ -1200,6 +1200,7 @@ class AddRecipientView(APIView):
             # Use bulk_update_submissions to update the recipients field
             bulk_update_data = {
                 'submission_ids': [internal_submission_id],
+                'query': {},
                 'data': {
                     '_submission_recipients': new_recipients
                 }
@@ -1355,6 +1356,7 @@ class RemoveRecipientView(APIView):
             # Use bulk_update_submissions to update the recipients field
             bulk_update_data = {
                 'submission_ids': [internal_submission_id],
+                'query': {},
                 'data': {
                     '_submission_recipients': new_recipients
                 }
