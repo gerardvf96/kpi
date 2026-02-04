@@ -40,6 +40,7 @@ import {
   SortValues,
   TABLE_MEDIA_TYPES,
   VALIDATION_STATUS_ID_PROP,
+  SUBMISSION_STATUS_ID_PROP,
 } from '#/components/submissions/tableConstants'
 import tableStore from '#/components/submissions/tableStore'
 import type { TableStoreData } from '#/components/submissions/tableStore'
@@ -63,6 +64,17 @@ import {
   ValidationStatusAdditionalName,
 } from '#/components/submissions/validationStatus.constants'
 import ValidationStatusDropdown from '#/components/submissions/validationStatusDropdown'
+import type {
+  SubmissionStatusOption,
+  SubmissionStatusOptionName,
+} from '#/components/submissions/submissionStatus.constants'
+import {
+  SUBMISSION_STATUS_OPTIONS,
+  SUBMISSION_STATUS_OPTIONS_WITH_SHOW_ALL,
+  SUBMISSION_STATUS_SHOW_ALL_OPTION,
+  SubmissionStatusAdditionalName,
+} from '#/components/submissions/submissionStatus.constants'
+import SubmissionStatusDropdown from '#/components/submissions/submissionStatusDropdown'
 import {
   ADDITIONAL_SUBMISSION_PROPS,
   EnketoActions,
@@ -187,6 +199,7 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       actions.resources.removeSubmissionValidationStatus.completed.listen(
         this.onSubmissionValidationStatusChange.bind(this),
       ),
+      actions.submissions.bulkUpdateSubmissions.completed.listen(this.onBulkUpdateSubmissionsCompleted.bind(this)),
       actions.table.updateSettings.completed.listen(this.onTableUpdateSettingsCompleted.bind(this)),
       actions.resources.deleteSubmission.completed.listen(this.refreshSubmissions.bind(this)),
       actions.resources.duplicateSubmission.completed.listen(this.onDuplicateSubmissionCompleted.bind(this)),
@@ -389,6 +402,45 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
         'validation_status.uid': newValidationStatus,
       })
     }
+  }
+
+  /**
+   * @param {object} originalRow
+   * @returns {object} one of SubmissionStatusOption
+   */
+  getCurrentSubmissionStatusOption(originalRow: SubmissionResponse): SubmissionStatusOption | null {
+    const statusValue = originalRow._submission_status
+    if (!statusValue) {
+      return null
+    }
+
+    const foundOption = SUBMISSION_STATUS_OPTIONS.find(
+      (option) => option.value === statusValue,
+    )
+
+    return foundOption || null
+  }
+
+  /**
+   * Callback for submission status dropdown change.
+   */
+  onSubmissionStatusChange(sid: string, newSubmissionStatus: SubmissionStatusOptionName) {
+    if (newSubmissionStatus === SubmissionStatusAdditionalName.show_all) {
+      return
+    }
+
+    // Update the submission status via bulk update API
+    const payload = {
+      submission_ids: [Number(sid)],
+      data: {
+        '_submission_status': newSubmissionStatus,
+      },
+    }
+
+    actions.submissions.bulkUpdateSubmissions(
+      this.props.asset.uid,
+      payload,
+    )
   }
 
   onFieldSortChange(
@@ -625,6 +677,78 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
   }
 
   /**
+   * @returns {object} submission status column for react-table
+   */
+  _getColumnSubmissionStatus(): TableColumn {
+    const elClassNames = ['rt-status']
+    if (tableStore.getFieldSortValue(SUBMISSION_STATUS_ID_PROP) !== null) {
+      elClassNames.push('is-sorted')
+    }
+
+    return {
+      Header: () => (
+        <div className='column-header-wrapper'>
+          <TableColumnSortDropdown
+            asset={this.props.asset}
+            fieldId={SUBMISSION_STATUS_ID_PROP}
+            sortValue={tableStore.getFieldSortValue(SUBMISSION_STATUS_ID_PROP)}
+            onSortChange={this.onFieldSortChange.bind(this)}
+            onHide={this.onHideField.bind(this)}
+            isFieldFrozen={tableStore.isFieldFrozen(SUBMISSION_STATUS_ID_PROP)}
+            onFrozenChange={this.onFieldFrozenChange.bind(this)}
+            additionalTriggerContent={<span className='column-header-title'>{t('Estado borrador')}</span>}
+          />
+        </div>
+      ),
+      sortable: false,
+      accessor: SUBMISSION_STATUS_ID_PROP,
+      index: '__3',
+      id: SUBMISSION_STATUS_ID_PROP,
+      width: this._getColumnWidth(SUBMISSION_STATUS_ID_PROP),
+      className: elClassNames.join(' '),
+      headerClassName: elClassNames.join(' '),
+      Filter: ({ filter, onChange }) => {
+        const currentOption: SubmissionStatusOption =
+          SUBMISSION_STATUS_OPTIONS.find((item) => item.value === filter?.value) || SUBMISSION_STATUS_SHOW_ALL_OPTION
+
+        return (
+          <SubmissionStatusDropdown
+            onChange={(newValue) => {
+              // For `show_all` option we need to pass empty string
+              if (newValue === SubmissionStatusAdditionalName.show_all) {
+                onChange('')
+              } else {
+                onChange(newValue)
+              }
+            }}
+            currentValue={currentOption}
+            isForHeaderFilter
+          />
+        )
+      },
+      Cell: (row: CellInfo) => {
+        const statusOption = this.getCurrentSubmissionStatusOption(row.original)
+        
+        if (!statusOption) {
+          return <span>-</span>
+        }
+
+        return (
+          <SubmissionStatusDropdown
+            onChange={(newValue) => {
+              this.onSubmissionStatusChange(row.original._id, newValue)
+            }}
+            currentValue={statusOption}
+            isDisabled={
+              !userHasPermForSubmission(PERMISSIONS_CODENAMES.validate_submissions, this.props.asset, row.original)
+            }
+          />
+        )
+      },
+    }
+  }
+
+  /**
    * Builds and gathers all necessary react-table data and stores in state.
    */
   _prepColumns(data: SubmissionResponse[]) {
@@ -662,6 +786,11 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
     const columnValidation = this._getColumnValidation()
     if (columnValidation) {
       columnsToRender.push(columnValidation)
+    }
+
+    const columnSubmissionStatus = this._getColumnSubmissionStatus()
+    if (columnSubmissionStatus) {
+      columnsToRender.push(columnSubmissionStatus)
     }
 
     const survey = this.props.asset.content?.survey
@@ -1061,6 +1190,31 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
           this._prepColumns(newData)
         })
       }
+    }
+  }
+
+  onSubmissionStatusUpdate(sid: string, newStatus: string) {
+    if (sid) {
+      const subIndex = this.state.submissions.findIndex((x) => x._id === Number.parseInt(sid))
+      if (typeof subIndex !== 'undefined' && this.state.submissions[subIndex]) {
+        const newData = this.state.submissions
+        newData[subIndex]._submission_status = newStatus
+        this.setState({ submissions: newData }, () => {
+          this._prepColumns(newData)
+        })
+      }
+    }
+  }
+
+  onBulkUpdateSubmissionsCompleted(response: any) {
+    // The response contains the updated submission data
+    if (response && response.data && Array.isArray(response.data)) {
+      response.data.forEach((updatedSubmission: any) => {
+        const sid = String(updatedSubmission._id)
+        if (updatedSubmission._submission_status) {
+          this.onSubmissionStatusUpdate(sid, updatedSubmission._submission_status)
+        }
+      })
     }
   }
 

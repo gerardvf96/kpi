@@ -876,7 +876,31 @@ class EnketoEditProxyView(APIView):
                 
                 # If this is a redirect request, redirect directly to Enketo
                 if 'redirect' in request.path:
-                    return HttpResponseRedirect(enketo_response.data['url'])
+                    enketo_url = enketo_response.data['url']
+                    
+                    # Forward any query parameters from the original request to Enketo
+                    query_params = request.GET.dict()
+                    if query_params:
+                        from urllib.parse import urlencode, urlparse, urlunparse, parse_qs
+                        parsed_url = urlparse(enketo_url)
+                        existing_params = parse_qs(parsed_url.query)
+                        # Merge existing params with new ones (new ones take priority)
+                        for key, value in query_params.items():
+                            existing_params[key] = [value]
+                        # Flatten the params back to regular dict
+                        merged_params = {k: v[0] for k, v in existing_params.items()}
+                        new_query = urlencode(merged_params)
+                        new_url = urlunparse((
+                            parsed_url.scheme,
+                            parsed_url.netloc,
+                            parsed_url.path,
+                            parsed_url.params,
+                            new_query,
+                            parsed_url.fragment
+                        ))
+                        return HttpResponseRedirect(new_url)
+                    
+                    return HttpResponseRedirect(enketo_url)
                 
                 return enketo_response
             else:
