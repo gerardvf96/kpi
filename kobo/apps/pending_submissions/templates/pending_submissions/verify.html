@@ -30,6 +30,27 @@
       width: 100%;
     }
     
+    .logo-container {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .logo-container a {
+      display: inline-block;
+    }
+    
+    .logo-container img {
+      height: 50px;
+      width: auto;
+      transition: opacity 0.2s;
+    }
+    
+    .logo-container img:hover {
+      opacity: 0.8;
+    }
+    
     h1 {
       color: #333;
       font-size: 24px;
@@ -239,7 +260,7 @@
       display: inline-block;
       width: 100%;
       padding: 14px;
-      background-color: #9D2235;
+      background-color: #495057;
       color: white;
       text-align: center;
       text-decoration: none;
@@ -253,7 +274,7 @@
     }
     
     .edit-button:hover {
-      background-color: #7a1a29;
+      background-color: #343a40;
     }
     
     .recipients-management {
@@ -293,19 +314,21 @@
     }
     
     .remove-recipient-btn {
-      padding: 4px 12px;
-      background-color: #dc3545;
-      color: white;
-      border: none;
+      padding: 4px 8px;
+      background-color: transparent;
+      color: #6c757d;
+      border: 1px solid #dee2e6;
       border-radius: 4px;
       font-size: 12px;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.2s;
       width: auto;
     }
     
     .remove-recipient-btn:hover {
-      background-color: #c82333;
+      background-color: #f8f9fa;
+      color: #dc3545;
+      border-color: #dc3545;
     }
     
     .add-recipient-form {
@@ -321,7 +344,7 @@
     
     .add-recipient-btn {
       padding: 8px 16px;
-      background-color: #495057;
+      background-color: #28a745;
       color: white;
       border: none;
       border-radius: 4px;
@@ -332,7 +355,7 @@
     }
     
     .add-recipient-btn:hover {
-      background-color: #343a40;
+      background-color: #218838;
     }
     
     .add-recipient-btn:disabled {
@@ -344,6 +367,12 @@
 
 {% block body %}
 <div class="container">
+  <div class="logo-container">
+    <a href="https://www.diba.cat" target="_blank" rel="noopener noreferrer">
+      <img src="https://media.diba.cat/diba/maqueta/logos/logodiba_header.svg" alt="Diputació de Barcelona">
+    </a>
+  </div>
+  
   <!-- Step 1: Email Input -->
   <div id="step-email" class="step">
     <h1>Verificar la teva identitat</h1>
@@ -389,6 +418,10 @@
     <!-- Submission Info (shown on success) -->
     <div id="submission-info" class="submission-info hidden">
       <h3>Detalls de l'esborrany</h3>
+      <div class="info-row">
+        <span class="info-label">ID:</span>
+        <span class="info-value" id="info-submission-id"></span>
+      </div>
       <div class="info-row">
         <span class="info-label">Formulari:</span>
         <span class="info-value" id="info-form-name"></span>
@@ -485,6 +518,7 @@
   const resultMessage = document.getElementById('result-message');
   
   const submissionInfo = document.getElementById('submission-info');
+  const infoSubmissionId = document.getElementById('info-submission-id');
   const infoFormName = document.getElementById('info-form-name');
   const infoLastEdit = document.getElementById('info-last-edit');
   const infoStatus = document.getElementById('info-status');
@@ -538,6 +572,7 @@
     // Show submission info if verification was successful and data is available
     if (success && submissionData && submissionData.submission_info) {
       const info = submissionData.submission_info;
+      infoSubmissionId.textContent = submissionId || 'N/A';
       infoFormName.textContent = info.form_name || 'Desconegut';
       infoLastEdit.textContent = info.last_edit_date || 'N/A';
       
@@ -638,8 +673,6 @@
         currentRecipients = (data.recipients || '').split(' ').filter(e => e.trim());
         updateRecipientsList();
         newRecipientEmailInput.value = '';
-        showMessage(resultMessage, data.message || 'Recipient added successfully.', 'success');
-        setTimeout(() => hideMessage(resultMessage), 3000);
       } else {
         alert(data.error || 'Failed to add recipient.');
       }
@@ -670,8 +703,6 @@
         // Update recipients list
         currentRecipients = (data.recipients || '').split(' ').filter(e => e.trim());
         updateRecipientsList();
-        showMessage(resultMessage, data.message || 'Recipient removed successfully.', 'success');
-        setTimeout(() => hideMessage(resultMessage), 3000);
       } else {
         alert(data.error || 'Failed to remove recipient.');
       }
