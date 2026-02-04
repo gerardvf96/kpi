@@ -43,6 +43,15 @@ from .serializers import (
 )
 
 
+def _generate_enketo_edit_url(submission_id: str) -> str:
+    """Generate the Enketo edit URL using our proxy endpoint.
+    
+    This URL points to our proxy which validates JWT and redirects to Enketo.
+    """
+    base_url = settings.KOBOFORM_URL.rstrip('/')
+    return f"{base_url}/pending-submissions/{submission_id}/enketo/redirect/edit/"
+
+
 class PendingSubmissionPageView(APIView):
     """
     View to render the pending submission verification page.
@@ -139,20 +148,13 @@ class PendingSubmissionPageView(APIView):
     
     def _get_submission_info(self, asset, submission_json, submission_id):
         """Extract submission info for display"""
-        request = self.request
-        
         form_name = asset.name
         last_edit_date = submission_json.get('end', submission_json.get('_submission_time', ''))
         submission_status = submission_json.get('_submission_status', '')
         recipients = submission_json.get('_submission_recipients', '')
         
-        # Generate Enketo edit URL
-        edit_url = versioned_reverse(
-            viewname='pending-submission-enketo-edit',
-            kwargs={'submission_id': submission_id},
-            request=request,
-            url_namespace=API_NAMESPACES['default'],
-        )
+        # Generate Enketo edit URL using shared function
+        edit_url = _generate_enketo_edit_url(submission_id)
         
         return {
             'form_name': form_name,
@@ -457,8 +459,8 @@ class VerifyCodeView(APIView):
                             # Extract UUID without 'uuid:' prefix
                             root_uuid_clean = root_uuid.replace('uuid:', '') if root_uuid else submission_id
                             
-                            # Generate Enketo edit URL using our proxy
-                            enketo_edit_url = self._generate_enketo_edit_url(root_uuid_clean)
+                            # Generate Enketo edit URL using shared function
+                            enketo_edit_url = _generate_enketo_edit_url(root_uuid_clean)
                             
                             return {
                                 'form_name': asset.name,
@@ -512,15 +514,6 @@ class VerifyCodeView(APIView):
         
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
         return token
-    
-    def _generate_enketo_edit_url(self, root_uuid_clean: str) -> str:
-        """Generate the Enketo edit URL using our proxy endpoint.
-        
-        This URL points to our proxy which validates JWT and redirects to Enketo.
-        """
-        base_url = settings.KOBOFORM_URL.rstrip('/')
-        # Point to our proxy endpoint which will handle the Enketo API call and redirect
-        return f"{base_url}/pending-submissions/{root_uuid_clean}/enketo/redirect/edit/"
 
 
 class EnketoEditProxyView(APIView):
