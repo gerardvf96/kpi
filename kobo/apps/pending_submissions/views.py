@@ -1191,34 +1191,42 @@ class AddRecipientView(APIView):
             if not superuser:
                 return False, 'No superuser found'
             
-            deployment = asset.deployment
             internal_submission_id = submission_json.get('_id')
             
             if not internal_submission_id:
                 return False, 'No submission _id found'
             
-            # Use bulk_update_submissions to update the recipients field
-            bulk_update_data = {
-                'submission_ids': [internal_submission_id],
-                'query': {},
-                'data': {
-                    '_submission_recipients': new_recipients
+            # Get or create API token for superuser
+            from rest_framework.authtoken.models import Token
+            token, created = Token.objects.get_or_create(user=superuser)
+            
+            # Call the public bulk update API endpoint
+            bulk_update_url = f"{settings.KOBOFORM_URL}/api/v2/assets/{asset.uid}/data/bulk/"
+            
+            payload = {
+                'payload': {
+                    'submission_ids': [internal_submission_id],
+                    'data': {
+                        '_submission_recipients': new_recipients
+                    }
                 }
             }
             
-            result = deployment.bulk_update_submissions(
-                bulk_update_data,
-                superuser
+            response = requests.patch(
+                bulk_update_url,
+                json=payload,
+                headers={
+                    'Authorization': f'Token {token.key}',
+                    'Content-Type': 'application/json'
+                },
+                timeout=30
             )
             
-            # Check result status
-            result_status = result.get('status')
-            if result_status == status.HTTP_200_OK:
+            if response.status_code == 200:
                 return True, None
             else:
-                # Return detailed error from bulk_update_submissions
-                error_data = result.get('data', {})
-                return False, f"Status: {result_status}, Data: {error_data}"
+                return False, f"HTTP {response.status_code}: {response.text}"
+                
         except Exception as e:
             return False, f"Exception: {str(e)}"
 
@@ -1347,33 +1355,41 @@ class RemoveRecipientView(APIView):
             if not superuser:
                 return False, 'No superuser found'
             
-            deployment = asset.deployment
             internal_submission_id = submission_json.get('_id')
             
             if not internal_submission_id:
                 return False, 'No submission _id found'
             
-            # Use bulk_update_submissions to update the recipients field
-            bulk_update_data = {
-                'submission_ids': [internal_submission_id],
-                'query': {},
-                'data': {
-                    '_submission_recipients': new_recipients
+            # Get or create API token for superuser
+            from rest_framework.authtoken.models import Token
+            token, created = Token.objects.get_or_create(user=superuser)
+            
+            # Call the public bulk update API endpoint
+            bulk_update_url = f"{settings.KOBOFORM_URL}/api/v2/assets/{asset.uid}/data/bulk/"
+            
+            payload = {
+                'payload': {
+                    'submission_ids': [internal_submission_id],
+                    'data': {
+                        '_submission_recipients': new_recipients
+                    }
                 }
             }
             
-            result = deployment.bulk_update_submissions(
-                bulk_update_data,
-                superuser
+            response = requests.patch(
+                bulk_update_url,
+                json=payload,
+                headers={
+                    'Authorization': f'Token {token.key}',
+                    'Content-Type': 'application/json'
+                },
+                timeout=30
             )
             
-            # Check result status
-            result_status = result.get('status')
-            if result_status == status.HTTP_200_OK:
+            if response.status_code == 200:
                 return True, None
             else:
-                # Return detailed error from bulk_update_submissions
-                error_data = result.get('data', {})
-                return False, f"Status: {result_status}, Data: {error_data}"
+                return False, f"HTTP {response.status_code}: {response.text}"
+                
         except Exception as e:
             return False, f"Exception: {str(e)}"
