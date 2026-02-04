@@ -1,4 +1,5 @@
 # coding: utf-8
+import json
 import jwt
 import requests
 from datetime import datetime, timedelta
@@ -48,16 +49,99 @@ class PendingSubmissionPageView(APIView):
     
     This is a simple HTML page where anonymous users can enter their email,
     receive a verification code, and verify it.
+    
+    If a valid JWT token cookie exists, automatically shows submission data.
     """
     
     permission_classes = (AllowAny,)
     
     def get(self, request, submission_id):
+        context = {'submission_id': submission_id}
+        
+        # Check for existing JWT token cookie
+        token = request.COOKIES.get('pending_submission_token')
+        if token:
+            try:
+                # Decode and validate JWT
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                token_submission_id = payload.get('submission_id')
+                email = payload.get('email')
+                
+                # Verify token is for this submission
+                if token_submission_id == submission_id:
+                    # Validate submission still exists and is valid
+                    submission_json, asset = self._find_submission(submission_id)
+                    
+                    if submission_json:
+                        # Check status and email are still valid
+                        submission_status = submission_json.get('_submission_status')
+                        recipients = submission_json.get('_submission_recipients', '')
+                        recipient_emails = [r.strip() for r in recipients.split() if r.strip()]
+                        
+                        if submission_status == 'pending' and email in recipient_emails:
+                            # Token is valid! Pre-populate context with submission data
+                            submission_info = self._get_submission_info(
+                                asset, submission_json, submission_id
+                            )
+                            context['auto_verified'] = True
+                            context['submission_info'] = json.dumps(submission_info)
+                            context['email'] = email
+            except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Exception):
+                # Token invalid/expired - just show normal form
+                pass
+        
         return TemplateResponse(
             request,
             'pending_submissions/verify.html',
-            {'submission_id': submission_id}
+            context
         )
+    
+    def _find_submission(self, submission_id):
+        """Find submission by rootUuid across all survey assets"""
+        for asset in Asset.objects.filter(asset_type='survey'):
+            if not hasattr(asset, 'deployment') or not asset.deployment:
+                continue
+            
+            try:
+                # Use asset owner's permissions to query submissions
+                submissions = asset.deployment.get_submissions(
+                    user=asset.owner,
+                    query={"meta/rootUuid": f"uuid:{submission_id}"},
+                    submission_ids=[],
+                    limit=1
+                )
+                
+                if submissions:
+                    return submissions[0], asset
+            except Exception:
+                continue
+        
+        return None, None
+    
+    def _get_submission_info(self, asset, submission_json, submission_id):
+        """Extract submission info for display"""
+        request = self.request
+        
+        form_name = asset.name
+        last_edit_date = submission_json.get('end', submission_json.get('_submission_time', ''))
+        submission_status = submission_json.get('_submission_status', '')
+        recipients = submission_json.get('_submission_recipients', '')
+        
+        # Generate Enketo edit URL
+        edit_url = versioned_reverse(
+            viewname='pending-submission-enketo-edit',
+            kwargs={'submission_id': submission_id},
+            request=request,
+            url_namespace=API_NAMESPACES['default'],
+        )
+        
+        return {
+            'form_name': form_name,
+            'last_edit_date': last_edit_date,
+            'status': submission_status,
+            'recipients': recipients,
+            'edit_url': edit_url,
+        }
 
 
 class SendVerificationCodeView(APIView):

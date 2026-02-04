@@ -315,9 +315,24 @@
   </div>
 </div>
 
+<script id="page-data" type="application/json">
+{
+  "submissionId": "{{ submission_id }}",
+  "autoVerified": {% if auto_verified %}true{% else %}false{% endif %},
+  "autoVerifiedEmail": "{{ email|default:""|escapejs }}",
+  "autoVerifiedData": {% if submission_info %}{{ submission_info|safe }}{% else %}null{% endif %}
+}
+</script>
+
 <script>
 (function() {
-  const submissionId = '{{ submission_id }}';
+  // Load data from template
+  const pageData = JSON.parse(document.getElementById('page-data').textContent);
+  const submissionId = pageData.submissionId;
+  const autoVerified = pageData.autoVerified;
+  const autoVerifiedEmail = pageData.autoVerifiedEmail;
+  const autoVerifiedData = pageData.autoVerifiedData;
+  
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
   
   // Elements
@@ -491,6 +506,23 @@
     hideMessage(verifyMessage);
     showStep(stepEmail);
   });
+  
+  // On page load: if auto-verified, show result directly
+  if (autoVerified && autoVerifiedData) {
+    currentEmail = autoVerifiedEmail;
+    const submissionInfo = {
+      verified: true,
+      message: 'Your session is still valid.',
+      submission_info: {
+        form_name: autoVerifiedData.form_name,
+        last_edit_date: autoVerifiedData.last_edit_date,
+        status: autoVerifiedData.status,
+        recipients: autoVerifiedData.recipients,
+        enketo_edit_url: autoVerifiedData.edit_url
+      }
+    };
+    showResult(true, 'Already Verified', 'Your session is still valid.', submissionInfo);
+  }
 })();
 </script>
 {% endblock %}
