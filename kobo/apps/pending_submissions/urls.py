@@ -4,6 +4,7 @@ from django.urls import path
 from .views import (
     AddRecipientView,
     EnketoEditProxyView,
+    EnketoViewProxyView,
     PendingSubmissionPageView,
     RemoveRecipientView,
     SendVerificationCodeView,
@@ -41,6 +42,12 @@ urlpatterns = [
         '<str:submission_id>/enketo/redirect/edit/',
         EnketoEditProxyView.as_view(),
         name='pending-submission-enketo-redirect-edit'
+    ),
+    # Enketo view redirect (authenticates with JWT then redirects to Enketo view)
+    path(
+        '<str:submission_id>/enketo/redirect/view/',
+        EnketoViewProxyView.as_view(),
+        name='pending-submission-enketo-redirect-view'
     ),
     # API endpoint to add a recipient
     path(

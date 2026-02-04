@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Verify Pending Submission{% endblock %}
+{% block title %}Verificar Esborrany{% endblock %}
 
 {% block head_stylesheets %}
   <style>
@@ -330,37 +330,37 @@
 <div class="container">
   <!-- Step 1: Email Input -->
   <div id="step-email" class="step">
-    <h1>Verify Your Identity</h1>
-    <p class="subtitle">Enter your email to receive a verification code</p>
+    <h1>Verificar la teva identitat</h1>
+    <p class="subtitle">Introdueix el teu correu per rebre un codi de verificació</p>
     
     <div id="email-message" class="message hidden"></div>
     
     <form id="email-form">
       <div class="form-group">
-        <label for="email">Email Address</label>
-        <input type="email" id="email" name="email" required placeholder="your@email.com">
+        <label for="email">Correu electrònic</label>
+        <input type="email" id="email" name="email" required placeholder="el.teu@correu.cat">
       </div>
-      <button type="submit" id="send-code-btn">Send Verification Code</button>
+      <button type="submit" id="send-code-btn">Enviar codi de verificació</button>
     </form>
   </div>
   
   <!-- Step 2: Code Verification -->
   <div id="step-verify" class="step hidden">
-    <h1>Enter Verification Code</h1>
-    <p class="subtitle">We sent a code to <span id="sent-email"></span></p>
+    <h1>Introdueix el codi de verificació</h1>
+    <p class="subtitle">Hem enviat un codi a <span id="sent-email"></span></p>
     
     <div id="verify-message" class="message hidden"></div>
     
     <form id="verify-form">
       <div class="form-group">
-        <label for="code">Verification Code</label>
-        <input type="text" id="code" name="code" required placeholder="Enter 6-digit code" maxlength="6" pattern="\d{6}">
+        <label for="code">Codi de verificació</label>
+        <input type="text" id="code" name="code" required placeholder="Introdueix el codi de 6 dígits" maxlength="6" pattern="\d{6}">
       </div>
-      <button type="submit" id="verify-btn">Verify Code</button>
+      <button type="submit" id="verify-btn">Verificar codi</button>
     </form>
     
     <div class="back-link">
-      <a href="#" id="resend-link">Didn't receive the code? Send again</a>
+      <a href="#" id="resend-link">No has rebut el codi? Torna a enviar</a>
     </div>
   </div>
   
@@ -372,44 +372,50 @@
     
     <!-- Submission Info (shown on success) -->
     <div id="submission-info" class="submission-info hidden">
-      <h3>Submission Details</h3>
+      <h3>Detalls de l'esborrany</h3>
       <div class="info-row">
-        <span class="info-label">Form Name:</span>
+        <span class="info-label">Formulari:</span>
         <span class="info-value" id="info-form-name"></span>
       </div>
       <div class="info-row">
-        <span class="info-label">Last Edit:</span>
+        <span class="info-label">Última edició:</span>
         <span class="info-value" id="info-last-edit"></span>
       </div>
       <div class="info-row">
-        <span class="info-label">Status:</span>
+        <span class="info-label">Estat:</span>
         <span class="info-value">
-          <span class="status-badge pending" id="info-status">Pending</span>
+          <span class="status-badge pending" id="info-status">EN CURS</span>
         </span>
       </div>
-      <div class="info-row">
-        <span class="info-label">Allowed Recipients:</span>
-        <span class="info-value" id="info-recipients"></span>
+      
+      <!-- Recipients Management -->
+      <div class="recipients-management">
+        <h4>Col·laboradors</h4>
+        <ul class="recipient-list" id="recipient-list"></ul>
+        <form class="add-recipient-form" id="add-recipient-form">
+          <input type="email" id="new-recipient-email" placeholder="Afegir col·laborador" required>
+          <button type="submit" class="add-recipient-btn" id="add-recipient-btn">Afegir</button>
+        </form>
       </div>
       
       <!-- Edit Button -->
       <a href="#" id="enketo-edit-link" class="edit-button">
-        Edit Submission in Enketo
+        Editar esborrany
       </a>
       
-      <!-- Recipients Management -->
-      <div class="recipients-management">
-        <h4>Manage Recipients</h4>
-        <ul class="recipient-list" id="recipient-list"></ul>
-        <form class="add-recipient-form" id="add-recipient-form">
-          <input type="email" id="new-recipient-email" placeholder="Add new recipient email" required>
-          <button type="submit" class="add-recipient-btn" id="add-recipient-btn">Add</button>
-        </form>
-      </div>
+      <!-- Review and Submit Button (only for pending) -->
+      <a href="#" id="enketo-review-link" class="edit-button" style="background-color: #28a745; margin-top: 10px;">
+        Revisar i presentar esborrany
+      </a>
+      
+      <!-- View Button (only for completed) -->
+      <a href="#" id="enketo-view-link" class="edit-button" style="background-color: #6c757d;">
+        Veure tramesa
+      </a>
     </div>
     
     <div class="back-link">
-      <a href="#" id="start-over-link">Start over</a>
+      <a href="#" id="start-over-link">Tornar a començar</a>
     </div>
   </div>
 </div>
@@ -466,8 +472,9 @@
   const infoFormName = document.getElementById('info-form-name');
   const infoLastEdit = document.getElementById('info-last-edit');
   const infoStatus = document.getElementById('info-status');
-  const infoRecipients = document.getElementById('info-recipients');
   const enketoEditLink = document.getElementById('enketo-edit-link');
+  const enketoReviewLink = document.getElementById('enketo-review-link');
+  const enketoViewLink = document.getElementById('enketo-view-link');
   const recipientList = document.getElementById('recipient-list');
   const addRecipientForm = document.getElementById('add-recipient-form');
   const newRecipientEmailInput = document.getElementById('new-recipient-email');
@@ -494,17 +501,29 @@
   }
   
   function showResult(success, title, message, submissionData) {
-    resultIcon.innerHTML = success ? '✓' : '✗';
-    resultIcon.className = 'result-icon ' + (success ? 'success' : 'error');
-    resultTitle.textContent = title;
-    resultMessage.textContent = message;
+    // Hide icon for success, show for error
+    if (success) {
+      resultIcon.style.display = 'none';
+      resultTitle.textContent = `Sessió iniciada com a ${currentEmail}`;
+      resultMessage.style.display = 'none';
+    } else {
+      resultIcon.innerHTML = '✗';
+      resultIcon.className = 'result-icon error';
+      resultIcon.style.display = 'block';
+      resultTitle.textContent = title;
+      resultMessage.textContent = message;
+      resultMessage.style.display = 'block';
+    }
     
     // Show submission info if verification was successful and data is available
     if (success && submissionData && submissionData.submission_info) {
       const info = submissionData.submission_info;
-      infoFormName.textContent = info.form_name || 'Unknown';
+      infoFormName.textContent = info.form_name || 'Desconegut';
       infoLastEdit.textContent = info.last_edit_date || 'N/A';
-      infoStatus.textContent = info.status || 'pending';
+      
+      // Map status to Catalan labels
+      const statusLabel = info.status === 'pending' ? 'EN CURS' : (info.status === 'completed' ? 'PRESENTAT' : info.status);
+      infoStatus.textContent = statusLabel;
       
       // Update status badge class based on status
       infoStatus.className = 'status-badge ' + (info.status || 'pending');
@@ -512,14 +531,36 @@
       // Update recipients
       currentRecipients = (info.recipients || '').split(' ').filter(e => e.trim());
       updateRecipientsList();
-      infoRecipients.textContent = info.recipients || 'N/A';
       
-      // Only show edit button if status is 'pending'
+      // Show/hide buttons based on status
       if (info.status === 'pending' && info.enketo_edit_url) {
+        // Pending: show edit and review buttons, hide view button
         enketoEditLink.href = info.enketo_edit_url;
         enketoEditLink.style.display = 'inline-block';
-      } else {
+        
+        // Review button with presentation_ready=true query param
+        const reviewUrl = info.enketo_edit_url + (info.enketo_edit_url.includes('?') ? '&' : '?') + 'presentation_ready=true';
+        enketoReviewLink.href = reviewUrl;
+        enketoReviewLink.style.display = 'inline-block';
+        
+        enketoViewLink.style.display = 'none';
+      } else if (info.status === 'completed') {
+        // Completed: show view button, hide edit and review buttons
         enketoEditLink.style.display = 'none';
+        enketoReviewLink.style.display = 'none';
+        
+        // View button should use view URL (will be generated from backend)
+        if (info.enketo_view_url) {
+          enketoViewLink.href = info.enketo_view_url;
+          enketoViewLink.style.display = 'inline-block';
+        } else {
+          enketoViewLink.style.display = 'none';
+        }
+      } else {
+        // Other statuses: hide all buttons
+        enketoEditLink.style.display = 'none';
+        enketoReviewLink.style.display = 'none';
+        enketoViewLink.style.display = 'none';
       }
       
       submissionInfo.classList.remove('hidden');
@@ -533,6 +574,11 @@
   function updateRecipientsList() {
     recipientList.innerHTML = '';
     currentRecipients.forEach(email => {
+      // Don't show the currently logged-in user in the collaborators list
+      if (email === currentEmail) {
+        return;
+      }
+      
       const li = document.createElement('li');
       li.className = 'recipient-item';
       
@@ -542,7 +588,7 @@
       
       const removeBtn = document.createElement('button');
       removeBtn.className = 'remove-recipient-btn';
-      removeBtn.textContent = 'Remove';
+      removeBtn.textContent = 'Eliminar';
       removeBtn.onclick = () => removeRecipient(email);
       
       li.appendChild(emailSpan);
@@ -571,7 +617,6 @@
         // Update recipients list
         currentRecipients = (data.recipients || '').split(' ').filter(e => e.trim());
         updateRecipientsList();
-        infoRecipients.textContent = data.recipients || 'N/A';
         newRecipientEmailInput.value = '';
         showMessage(resultMessage, data.message || 'Recipient added successfully.', 'success');
         setTimeout(() => hideMessage(resultMessage), 3000);
@@ -582,7 +627,7 @@
       alert('Network error. Please try again.');
     } finally {
       addRecipientBtn.disabled = false;
-      addRecipientBtn.textContent = 'Add';
+      addRecipientBtn.textContent = 'Afegir';
     }
   }
   
@@ -605,7 +650,6 @@
         // Update recipients list
         currentRecipients = (data.recipients || '').split(' ').filter(e => e.trim());
         updateRecipientsList();
-        infoRecipients.textContent = data.recipients || 'N/A';
         showMessage(resultMessage, data.message || 'Recipient removed successfully.', 'success');
         setTimeout(() => hideMessage(resultMessage), 3000);
       } else {
@@ -622,7 +666,7 @@
     
     currentEmail = email;
     sendCodeBtn.disabled = true;
-    sendCodeBtn.textContent = 'Sending...';
+    sendCodeBtn.textContent = 'Enviant...';
     hideMessage(emailMessage);
     
     try {
@@ -648,7 +692,7 @@
       showMessage(emailMessage, 'Network error. Please try again.', 'error');
     } finally {
       sendCodeBtn.disabled = false;
-      sendCodeBtn.textContent = 'Send Verification Code';
+      sendCodeBtn.textContent = 'Enviar codi de verificació';
     }
   }
   
@@ -657,7 +701,7 @@
     if (!code) return;
     
     verifyBtn.disabled = true;
-    verifyBtn.textContent = 'Verifying...';
+    verifyBtn.textContent = 'Verificant...';
     hideMessage(verifyMessage);
     
     try {
@@ -673,7 +717,7 @@
       const data = await response.json();
       
       if (response.ok && data.verified) {
-        showResult(true, 'Code correct', data.message || 'Your verification was successful.', data);
+        showResult(true, '', '', data);
       } else {
         showMessage(verifyMessage, data.message || 'Code incorrect', 'error');
       }
@@ -681,7 +725,7 @@
       showMessage(verifyMessage, 'Network error. Please try again.', 'error');
     } finally {
       verifyBtn.disabled = false;
-      verifyBtn.textContent = 'Verify Code';
+      verifyBtn.textContent = 'Verificar codi';
     }
   }
   
@@ -725,16 +769,17 @@
     currentEmail = autoVerifiedEmail;
     const submissionInfo = {
       verified: true,
-      message: 'Your session is still valid.',
+      message: 'La teva sessió encara és vàlida.',
       submission_info: {
         form_name: autoVerifiedData.form_name,
         last_edit_date: autoVerifiedData.last_edit_date,
         status: autoVerifiedData.status,
         recipients: autoVerifiedData.recipients,
-        enketo_edit_url: autoVerifiedData.edit_url
+        enketo_edit_url: autoVerifiedData.edit_url,
+        enketo_view_url: autoVerifiedData.view_url
       }
     };
-    showResult(true, 'Already Verified', 'Your session is still valid.', submissionInfo);
+    showResult(true, '', '', submissionInfo);
   }
 })();
 </script>

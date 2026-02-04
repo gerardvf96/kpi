@@ -147,12 +147,17 @@ class PendingSubmissionPageView(APIView):
         # Generate Enketo edit URL using shared function
         edit_url = _generate_enketo_edit_url(submission_id)
         
+        # Generate Enketo view URL for completed submissions
+        base_url = settings.KOBOFORM_URL.rstrip('/')
+        view_url = f"{base_url}/pending-submissions/{submission_id}/enketo/redirect/view/"
+        
         return {
             'form_name': form_name,
             'last_edit_date': last_edit_date,
             'status': submission_status,
             'recipients': recipients,
             'edit_url': edit_url,
+            'view_url': view_url,
         }
 
 
@@ -448,12 +453,17 @@ class VerifyCodeView(APIView):
                             # Generate Enketo edit URL using shared function
                             enketo_edit_url = _generate_enketo_edit_url(root_uuid_clean)
                             
+                            # Generate Enketo view URL
+                            base_url = settings.KOBOFORM_URL.rstrip('/')
+                            enketo_view_url = f"{base_url}/pending-submissions/{root_uuid_clean}/enketo/redirect/view/"
+                            
                             return {
                                 'form_name': asset.name,
                                 'last_edit_date': last_edit_date,
                                 'status': submission_status,
                                 'recipients': recipients,
                                 'enketo_edit_url': enketo_edit_url,
+                                'enketo_view_url': enketo_view_url,
                                 'asset_uid': asset.uid,
                             }
                 except Exception:
@@ -1065,6 +1075,238 @@ class EnketoEditProxyView(APIView):
                 {'error': t('Error generating Enketo link: %(error)s') % {'error': str(e)}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class EnketoViewProxyView(APIView):
+    """
+    Proxy endpoint for Enketo view access with JWT authentication.
+    
+    Similar to EnketoEditProxyView but generates a view-only link for completed submissions.
+    """
+    
+    permission_classes = (AllowAny,)
+    
+    def get(self, request, submission_id):
+        """
+        Handle GET request to view submission in Enketo.
+        
+        Validates JWT token and redirects to Enketo view URL.
+        """
+        # Extract JWT token from cookie or Authorization header
+        token = request.COOKIES.get('pending_submission_token')
+        if not token:
+            auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+            if auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+        
+        if not token:
+            return Response(
+                {'error': t('Authentication required. Please verify your email first.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Validate JWT token
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            
+            # Verify token type
+            if payload.get('type') != 'pending_submission_access':
+                return Response(
+                    {'error': t('Invalid token type.')},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Verify submission_id matches
+            token_submission_id = payload.get('submission_id', '').replace('uuid:', '')
+            current_sub_id = submission_id.replace('uuid:', '')
+            
+            if token_submission_id != current_sub_id:
+                return Response(
+                    {'error': t('Token does not match this submission.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            email = payload.get('email', '')
+            
+            # Find the asset and submission
+            asset, submission_json = self._find_submission_and_asset(submission_id)
+            
+            if not asset or not submission_json:
+                return Response(
+                    {'error': t('Submission not found.')},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Verify email is still in recipients
+            recipients = submission_json.get('_submission_recipients', '')
+            if isinstance(recipients, str):
+                recipient_emails = recipients.split()
+            else:
+                recipient_emails = []
+            
+            if email not in recipient_emails:
+                return Response(
+                    {'error': t('Access denied. Email not authorized for this submission.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Generate Enketo view link (works for any status)
+            enketo_url = self._get_enketo_view_url(request, asset, submission_json)
+            
+            if enketo_url:
+                return HttpResponseRedirect(enketo_url)
+            else:
+                return Response(
+                    {'error': t('Failed to generate Enketo view link.')},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+        except jwt.ExpiredSignatureError:
+            return Response(
+                {'error': t('Token has expired. Please verify your email again.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except jwt.InvalidTokenError:
+            return Response(
+                {'error': t('Invalid token.')},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception as e:
+            return Response(
+                {'error': t('Error processing request: %(error)s') % {'error': str(e)}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _find_submission_and_asset(self, submission_id: str) -> tuple[Asset | None, dict | None]:
+        """Find the asset and submission by rootUuid."""
+        try:
+            User = get_user_model()
+            admin_user = User.objects.filter(is_superuser=True).first()
+            
+            if not admin_user:
+                return None, None
+            
+            query = {
+                "meta/rootUuid": f"uuid:{submission_id}" if not submission_id.startswith('uuid:') else submission_id
+            }
+            
+            assets = Asset.objects.filter(asset_type='survey')
+            
+            for asset in assets:
+                try:
+                    if not asset.has_deployment:
+                        continue
+                    deployment = asset.deployment
+                    submissions = list(deployment.get_submissions(
+                        user=admin_user,
+                        query=query,
+                        format_type=SUBMISSION_FORMAT_TYPE_JSON,
+                    ))
+                    
+                    if submissions:
+                        return asset, submissions[0]
+                except Exception:
+                    continue
+            
+            return None, None
+        except Exception:
+            return None, None
+    
+    def _get_enketo_view_url(self, request, asset: Asset, submission_json: dict) -> str | None:
+        """Generate Enketo view URL by calling the Enketo API."""
+        try:
+            deployment = asset.deployment
+            User = get_user_model()
+            admin_user = User.objects.filter(is_superuser=True).first()
+            
+            internal_submission_id = submission_json.get('_id')
+            
+            if not internal_submission_id:
+                return None
+            
+            # Get the XML version for Enketo
+            submission_xml = deployment.get_submission(
+                internal_submission_id, 
+                admin_user, 
+                SUBMISSION_FORMAT_TYPE_XML
+            )
+            
+            if isinstance(submission_xml, str):
+                submission_xml = submission_xml.encode()
+            
+            submission_xml_root = fromstring_preserve_root_xmlns(submission_xml)
+            
+            # Add mandatory XML elements if missing
+            el = get_or_create_element(
+                submission_xml_root, deployment.FORM_UUID_XPATH
+            )
+            if not el or not el.text.strip():
+                form_uuid = deployment.backend_response['uuid']
+                el.text = form_uuid
+            
+            el = get_or_create_element(
+                submission_xml_root, deployment.SUBMISSION_CURRENT_UUID_XPATH
+            )
+            if not el or not el.text.strip():
+                el.text = 'uuid:' + submission_json['_uuid']
+            
+            version_uid = asset.latest_deployed_version.uid
+            xml_root_node_name = submission_xml_root.tag
+            
+            # Create snapshot
+            snapshot = asset.snapshot(
+                regenerate=True,
+                root_node_name=xml_root_node_name,
+                version_uid=version_uid,
+                submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
+            )
+            
+            # Extract submission_id for return URL
+            submission_id = remove_uuid_prefix(submission_json['meta/rootUuid'])
+            return_url = request.build_absolute_uri(
+                f'/pending-submissions/{submission_id}/'
+            )
+            
+            # Prepare data for Enketo VIEW API (not edit)
+            data = {
+                'server_url': versioned_reverse(
+                    viewname='assetsnapshot-detail',
+                    kwargs={'uid_asset_snapshot': snapshot.uid},
+                    request=request,
+                    url_namespace=API_NAMESPACES['default'],
+                ),
+                'instance': xml_tostring(submission_xml_root),
+                'instance_id': submission_json['_uuid'],
+                'form_id': snapshot.uid,
+                'return_url': return_url
+            }
+            
+            # Add attachments if any
+            attachments = deployment.get_attachment_objects_from_dict(submission_json)
+            for attachment in attachments:
+                key_ = f'instance_attachments[{attachment.media_file_basename}]'
+                data[key_] = versioned_reverse(
+                    viewname='attachment-detail',
+                    args=(asset.uid, internal_submission_id, attachment.uid),
+                    request=request,
+                    url_namespace=API_NAMESPACES['default'],
+                )
+            
+            # Make request to Enketo VIEW INSTANCE API endpoint
+            response = requests.post(
+                f'{settings.ENKETO_URL}/{settings.ENKETO_VIEW_INSTANCE_ENDPOINT}',
+                auth=(settings.ENKETO_API_KEY, ''),
+                data=data
+            )
+            
+            if response.status_code != status.HTTP_201_CREATED:
+                return None
+            
+            json_response = response.json()
+            return json_response.get('view_url')
+            
+        except Exception:
+            return None
 
 
 class AddRecipientView(APIView):
