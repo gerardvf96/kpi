@@ -199,7 +199,6 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       actions.resources.removeSubmissionValidationStatus.completed.listen(
         this.onSubmissionValidationStatusChange.bind(this),
       ),
-      actions.submissions.bulkUpdateSubmissions.completed.listen(this.onBulkUpdateSubmissionsCompleted.bind(this)),
       actions.table.updateSettings.completed.listen(this.onTableUpdateSettingsCompleted.bind(this)),
       actions.resources.deleteSubmission.completed.listen(this.refreshSubmissions.bind(this)),
       actions.resources.duplicateSubmission.completed.listen(this.onDuplicateSubmissionCompleted.bind(this)),
@@ -429,7 +428,7 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       return
     }
 
-    // Update the submission status via bulk update API
+    // Update the submission status via bulk patch API
     const payload = {
       submission_ids: [Number(sid)],
       data: {
@@ -437,7 +436,7 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       },
     }
 
-    actions.submissions.bulkUpdateSubmissions(
+    actions.submissions.bulkPatchValues(
       this.props.asset.uid,
       payload,
     )
@@ -1190,31 +1189,6 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
           this._prepColumns(newData)
         })
       }
-    }
-  }
-
-  onSubmissionStatusUpdate(sid: string, newStatus: string) {
-    if (sid) {
-      const subIndex = this.state.submissions.findIndex((x) => x._id === Number.parseInt(sid))
-      if (typeof subIndex !== 'undefined' && this.state.submissions[subIndex]) {
-        const newData = this.state.submissions
-        newData[subIndex]._submission_status = newStatus
-        this.setState({ submissions: newData }, () => {
-          this._prepColumns(newData)
-        })
-      }
-    }
-  }
-
-  onBulkUpdateSubmissionsCompleted(response: any) {
-    // The response contains the updated submission data
-    if (response && response.data && Array.isArray(response.data)) {
-      response.data.forEach((updatedSubmission: any) => {
-        const sid = String(updatedSubmission._id)
-        if (updatedSubmission._submission_status) {
-          this.onSubmissionStatusUpdate(sid, updatedSubmission._submission_status)
-        }
-      })
     }
   }
 
