@@ -238,6 +238,9 @@
 {% endblock %}
 
 {% block body %}
+<div style="background: yellow; padding: 10px; margin: 10px; font-family: monospace; font-size: 12px;">
+  DEBUG: {{ debug_info }}
+</div>
 <div class="container">
   <!-- Step 1: Email Input -->
   <div id="step-email" class="step">
@@ -332,6 +335,11 @@
   const autoVerified = pageData.autoVerified;
   const autoVerifiedEmail = pageData.autoVerifiedEmail;
   const autoVerifiedData = pageData.autoVerifiedData;
+  
+  // Debug logging
+  console.log('Page loaded with data:', pageData);
+  console.log('Auto-verified:', autoVerified);
+  console.log('Auto-verified data:', autoVerifiedData);
   
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
   

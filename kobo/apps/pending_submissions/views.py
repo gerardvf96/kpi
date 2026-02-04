@@ -57,26 +57,33 @@ class PendingSubmissionPageView(APIView):
     
     def get(self, request, submission_id):
         context = {'submission_id': submission_id}
+        debug_info = []  # Temporary debug
         
         # Check for existing JWT token cookie
         token = request.COOKIES.get('pending_submission_token')
+        debug_info.append(f"Token exists: {bool(token)}")
+        
         if token:
             try:
                 # Decode and validate JWT
                 payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
                 token_submission_id = payload.get('submission_id')
                 email = payload.get('email')
+                debug_info.append(f"JWT decoded: {token_submission_id}, {email}")
                 
                 # Verify token is for this submission
                 if token_submission_id == submission_id:
+                    debug_info.append("Token matches submission")
                     # Validate submission still exists and is valid
                     submission_json, asset = self._find_submission(submission_id)
+                    debug_info.append(f"Found: sub={bool(submission_json)}, asset={bool(asset)}")
                     
-                    if submission_json:
+                    if submission_json and asset:
                         # Check status and email are still valid
                         submission_status = submission_json.get('_submission_status')
                         recipients = submission_json.get('_submission_recipients', '')
                         recipient_emails = [r.strip() for r in recipients.split() if r.strip()]
+                        debug_info.append(f"Status={submission_status}, email in recipients={email in recipient_emails}")
                         
                         if submission_status == 'pending' and email in recipient_emails:
                             # Token is valid! Pre-populate context with submission data
@@ -86,9 +93,14 @@ class PendingSubmissionPageView(APIView):
                             context['auto_verified'] = True
                             context['submission_info'] = json.dumps(submission_info)
                             context['email'] = email
-            except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Exception):
+                            debug_info.append("AUTO VERIFIED SET")
+                else:
+                    debug_info.append(f"Token mismatch: {token_submission_id} != {submission_id}")
+            except Exception as e:
                 # Token invalid/expired - just show normal form
-                pass
+                debug_info.append(f"Exception: {type(e).__name__}: {str(e)}")
+        
+        context['debug_info'] = ' | '.join(debug_info)  # Temporary debug
         
         return TemplateResponse(
             request,
