@@ -66,11 +66,9 @@ class PendingSubmissionPageView(APIView):
     
     def get(self, request, submission_id):
         context = {'submission_id': submission_id}
-        debug_info = []  # Temporary debug
         
         # Check for existing JWT token cookie
         token = request.COOKIES.get('pending_submission_token')
-        debug_info.append(f"Token exists: {bool(token)}")
         
         if token:
             try:
@@ -78,23 +76,19 @@ class PendingSubmissionPageView(APIView):
                 payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
                 token_submission_id = payload.get('submission_id')
                 email = payload.get('email')
-                debug_info.append(f"JWT decoded: {token_submission_id}, {email}")
                 
                 # Verify token is for this submission
                 if token_submission_id == submission_id:
-                    debug_info.append("Token matches submission")
                     # Validate submission still exists and is valid
                     submission_json, asset = self._find_submission(submission_id)
-                    debug_info.append(f"Found: sub={bool(submission_json)}, asset={bool(asset)}")
                     
                     if submission_json and asset:
-                        # Check status and email are still valid
+                        # Check email is still valid (allow any status for viewing)
                         submission_status = submission_json.get('_submission_status')
                         recipients = submission_json.get('_submission_recipients', '')
                         recipient_emails = [r.strip() for r in recipients.split() if r.strip()]
-                        debug_info.append(f"Status={submission_status}, email in recipients={email in recipient_emails}")
                         
-                        if submission_status == 'pending' and email in recipient_emails:
+                        if email in recipient_emails:
                             # Token is valid! Pre-populate context with submission data
                             submission_info = self._get_submission_info(
                                 asset, submission_json, submission_id
@@ -102,14 +96,9 @@ class PendingSubmissionPageView(APIView):
                             context['auto_verified'] = True
                             context['submission_info'] = json.dumps(submission_info)
                             context['email'] = email
-                            debug_info.append("AUTO VERIFIED SET")
-                else:
-                    debug_info.append(f"Token mismatch: {token_submission_id} != {submission_id}")
-            except Exception as e:
+            except Exception:
                 # Token invalid/expired - just show normal form
-                debug_info.append(f"Exception: {type(e).__name__}: {str(e)}")
-        
-        context['debug_info'] = ' | '.join(debug_info)  # Temporary debug
+                pass
         
         return TemplateResponse(
             request,
@@ -291,11 +280,6 @@ class SendVerificationCodeView(APIView):
             
             if not submission_data:
                 return False, t('Submission not found.'), None
-            
-            # Check if submission status is 'pending'
-            submission_status = submission_data.get('_submission_status', '')
-            if submission_status != 'pending':
-                return False, t('This submission has already been submitted.'), None
             
             # Check if email is in _submission_recipients
             recipients = submission_data.get('_submission_recipients', '')
@@ -736,6 +720,12 @@ class EnketoEditProxyView(APIView):
                 submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
             )
             
+            # Extract submission_id from meta/rootUuid for return URL
+            submission_id = remove_uuid_prefix(submission_json['meta/rootUuid'])
+            return_url = request.build_absolute_uri(
+                f'/pending-submissions/{submission_id}/'
+            )
+            
             # Prepare data for Enketo API
             data = {
                 'server_url': versioned_reverse(
@@ -747,7 +737,7 @@ class EnketoEditProxyView(APIView):
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
                 'form_id': snapshot.uid,
-                'return_url': 'false'
+                'return_url': return_url
             }
             
             # Add attachments if any
@@ -1003,6 +993,12 @@ class EnketoEditProxyView(APIView):
                 submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
             )
             
+            # Extract submission_id from meta/rootUuid for return URL
+            submission_id = remove_uuid_prefix(submission_json['meta/rootUuid'])
+            return_url = request.build_absolute_uri(
+                f'/pending-submissions/{submission_id}/'
+            )
+            
             # Prepare data for Enketo API
             data = {
                 'server_url': versioned_reverse(
@@ -1014,7 +1010,7 @@ class EnketoEditProxyView(APIView):
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
                 'form_id': snapshot.uid,
-                'return_url': 'false'
+                'return_url': return_url
             }
             
             # Add attachments if any

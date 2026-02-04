@@ -214,6 +214,11 @@
       color: #856404;
     }
     
+    .status-badge.completed {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
     .edit-button {
       display: inline-block;
       width: 100%;
@@ -238,9 +243,6 @@
 {% endblock %}
 
 {% block body %}
-<div style="background: yellow; padding: 10px; margin: 10px; font-family: monospace; font-size: 12px;">
-  DEBUG: {{ debug_info }}
-</div>
 <div class="container">
   <!-- Step 1: Email Input -->
   <div id="step-email" class="step">
@@ -307,7 +309,7 @@
       </div>
       
       <!-- Edit Button -->
-      <a href="#" id="enketo-edit-link" class="edit-button" target="_blank">
+      <a href="#" id="enketo-edit-link" class="edit-button">
         Edit Submission in Enketo
       </a>
     </div>
@@ -404,11 +406,18 @@
       infoFormName.textContent = info.form_name || 'Unknown';
       infoLastEdit.textContent = info.last_edit_date || 'N/A';
       infoStatus.textContent = info.status || 'pending';
+      
+      // Update status badge class based on status
+      infoStatus.className = 'status-badge ' + (info.status || 'pending');
+      
       infoRecipients.textContent = info.recipients || 'N/A';
       
-      if (info.enketo_edit_url) {
-        // Use the URL directly - it already points to the redirect endpoint
+      // Only show edit button if status is 'pending'
+      if (info.status === 'pending' && info.enketo_edit_url) {
         enketoEditLink.href = info.enketo_edit_url;
+        enketoEditLink.style.display = 'inline-block';
+      } else {
+        enketoEditLink.style.display = 'none';
       }
       
       submissionInfo.classList.remove('hidden');
