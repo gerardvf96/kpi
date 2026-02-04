@@ -69,13 +69,13 @@
     input[type="email"]:focus,
     input[type="text"]:focus {
       outline: none;
-      border-color: #2095f3;
+      border-color: #9D2235;
     }
     
     button {
       width: 100%;
       padding: 14px;
-      background-color: #2095f3;
+      background-color: #9D2235;
       color: white;
       border: none;
       border-radius: 4px;
@@ -86,7 +86,7 @@
     }
     
     button:hover {
-      background-color: #1a7ed8;
+      background-color: #7a1a29;
     }
     
     button:disabled {
@@ -146,13 +146,29 @@
       color: #dc3545;
     }
     
+    .logged-in-user {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #333;
+      text-align: center;
+    }
+    
+    .logged-in-user strong {
+      color: #9D2235;
+      font-weight: 600;
+    }
+    
     .back-link {
       text-align: center;
       margin-top: 20px;
     }
     
     .back-link a {
-      color: #2095f3;
+      color: #9D2235;
       text-decoration: none;
       font-size: 14px;
     }
@@ -305,7 +321,7 @@
     
     .add-recipient-btn {
       padding: 8px 16px;
-      background-color: #2095f3;
+      background-color: #9D2235;
       color: white;
       border: none;
       border-radius: 4px;
@@ -316,7 +332,7 @@
     }
     
     .add-recipient-btn:hover {
-      background-color: #1a7ed8;
+      background-color: #7a1a29;
     }
     
     .add-recipient-btn:disabled {
@@ -388,16 +404,6 @@
         </span>
       </div>
       
-      <!-- Recipients Management -->
-      <div class="recipients-management">
-        <h4>Col·laboradors</h4>
-        <ul class="recipient-list" id="recipient-list"></ul>
-        <form class="add-recipient-form" id="add-recipient-form">
-          <input type="email" id="new-recipient-email" placeholder="Afegir col·laborador" required>
-          <button type="submit" class="add-recipient-btn" id="add-recipient-btn">Afegir</button>
-        </form>
-      </div>
-      
       <!-- Edit Button -->
       <a href="#" id="enketo-edit-link" class="edit-button">
         Editar esborrany
@@ -409,13 +415,23 @@
       </a>
       
       <!-- View Button (only for completed) -->
-      <a href="#" id="enketo-view-link" class="edit-button" style="background-color: #6c757d;">
+      <a href="#" id="enketo-view-link" class="edit-button" style="background-color: #28a745;">
         Veure tramesa
       </a>
+      
+      <!-- Recipients Management -->
+      <div class="recipients-management">
+        <h4>Col·laboradors</h4>
+        <ul class="recipient-list" id="recipient-list"></ul>
+        <form class="add-recipient-form" id="add-recipient-form">
+          <input type="email" id="new-recipient-email" placeholder="Afegir col·laborador" required>
+          <button type="submit" class="add-recipient-btn" id="add-recipient-btn">Afegir</button>
+        </form>
+      </div>
     </div>
     
     <div class="back-link">
-      <a href="#" id="start-over-link">Tornar a començar</a>
+      <a href="#" id="start-over-link">Identificar-se com a un altre usuari</a>
     </div>
   </div>
 </div>
@@ -501,18 +517,22 @@
   }
   
   function showResult(success, title, message, submissionData) {
-    // Hide icon for success, show for error
+    // Hide icon and title for success, show for error
     if (success) {
       resultIcon.style.display = 'none';
-      resultTitle.textContent = `Sessió iniciada com a ${currentEmail}`;
-      resultMessage.style.display = 'none';
+      resultTitle.style.display = 'none';
+      resultMessage.style.display = 'block';
+      resultMessage.className = 'logged-in-user';
+      resultMessage.innerHTML = `Sessió iniciada com a <strong>${currentEmail}</strong>`;
     } else {
       resultIcon.innerHTML = '✗';
       resultIcon.className = 'result-icon error';
       resultIcon.style.display = 'block';
+      resultTitle.style.display = 'block';
       resultTitle.textContent = title;
-      resultMessage.textContent = message;
       resultMessage.style.display = 'block';
+      resultMessage.className = 'subtitle';
+      resultMessage.textContent = message;
     }
     
     // Show submission info if verification was successful and data is available

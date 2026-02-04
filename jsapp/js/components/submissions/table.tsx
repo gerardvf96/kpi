@@ -429,16 +429,11 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
     }
 
     // Update the submission status via bulk patch API
-    const payload = {
-      submission_ids: [Number(sid)],
-      data: {
-        '_submission_status': newSubmissionStatus,
-      },
-    }
-
+    // Note: bulkPatchValues expects (uid, submissionIds[], data{})
     actions.submissions.bulkPatchValues(
       this.props.asset.uid,
-      payload,
+      [sid],
+      { '_submission_status': newSubmissionStatus },
     )
   }
 
