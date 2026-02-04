@@ -1132,7 +1132,7 @@ class AddRecipientView(APIView):
         updated_recipients = ' '.join(recipient_list)
         
         # Update submission
-        success = self._update_submission_recipients(
+        success, error_detail = self._update_submission_recipients(
             asset, submission_json, updated_recipients
         )
         
@@ -1147,7 +1147,7 @@ class AddRecipientView(APIView):
             )
         else:
             return Response(
-                {'error': t('Failed to update submission.')},
+                {'error': t('Failed to update submission: %(detail)s') % {'detail': error_detail}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -1189,13 +1189,13 @@ class AddRecipientView(APIView):
             superuser = User.objects.filter(is_superuser=True).first()
             
             if not superuser:
-                return False
+                return False, 'No superuser found'
             
             deployment = asset.deployment
             internal_submission_id = submission_json.get('_id')
             
             if not internal_submission_id:
-                return False
+                return False, 'No submission _id found'
             
             # Use bulk_update_submissions to update the recipients field
             bulk_update_data = {
@@ -1210,9 +1210,16 @@ class AddRecipientView(APIView):
                 superuser
             )
             
-            return result.get('status') == status.HTTP_200_OK
-        except Exception:
-            return False
+            # Check result status
+            result_status = result.get('status')
+            if result_status == status.HTTP_200_OK:
+                return True, None
+            else:
+                # Return detailed error from bulk_update_submissions
+                error_data = result.get('data', {})
+                return False, f"Status: {result_status}, Data: {error_data}"
+        except Exception as e:
+            return False, f"Exception: {str(e)}"
 
 
 class RemoveRecipientView(APIView):
@@ -1280,7 +1287,7 @@ class RemoveRecipientView(APIView):
         updated_recipients = ' '.join(recipient_list)
         
         # Update submission
-        success = self._update_submission_recipients(
+        success, error_detail = self._update_submission_recipients(
             asset, submission_json, updated_recipients
         )
         
@@ -1295,7 +1302,7 @@ class RemoveRecipientView(APIView):
             )
         else:
             return Response(
-                {'error': t('Failed to update submission.')},
+                {'error': t('Failed to update submission: %(detail)s') % {'detail': error_detail}},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -1337,13 +1344,13 @@ class RemoveRecipientView(APIView):
             superuser = User.objects.filter(is_superuser=True).first()
             
             if not superuser:
-                return False
+                return False, 'No superuser found'
             
             deployment = asset.deployment
             internal_submission_id = submission_json.get('_id')
             
             if not internal_submission_id:
-                return False
+                return False, 'No submission _id found'
             
             # Use bulk_update_submissions to update the recipients field
             bulk_update_data = {
@@ -1358,6 +1365,13 @@ class RemoveRecipientView(APIView):
                 superuser
             )
             
-            return result.get('status') == status.HTTP_200_OK
-        except Exception:
-            return False
+            # Check result status
+            result_status = result.get('status')
+            if result_status == status.HTTP_200_OK:
+                return True, None
+            else:
+                # Return detailed error from bulk_update_submissions
+                error_data = result.get('data', {})
+                return False, f"Status: {result_status}, Data: {error_data}"
+        except Exception as e:
+            return False, f"Exception: {str(e)}"
