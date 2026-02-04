@@ -110,18 +110,25 @@ class PendingSubmissionPageView(APIView):
     
     def _find_submission(self, submission_id):
         """Find submission by rootUuid across all survey assets"""
+        # Use a superuser to query submissions with full permissions
+        User = get_user_model()
+        superuser = User.objects.filter(is_superuser=True).first()
+        
+        if not superuser:
+            return None, None
+        
         for asset in Asset.objects.filter(asset_type='survey'):
             if not hasattr(asset, 'deployment') or not asset.deployment:
                 continue
             
             try:
-                # Use asset owner's permissions to query submissions
-                submissions = asset.deployment.get_submissions(
-                    user=asset.owner,
+                # Use superuser's permissions to query submissions
+                submissions = list(asset.deployment.get_submissions(
+                    user=superuser,
                     query={"meta/rootUuid": f"uuid:{submission_id}"},
                     submission_ids=[],
                     limit=1
-                )
+                ))
                 
                 if submissions:
                     return submissions[0], asset
