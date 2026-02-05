@@ -22,6 +22,21 @@ module.exports = do ->
   class row.BaseRow extends base.BaseModel
     @kls = "BaseRow"
     constructor: (attributes={}, options={})->
+      # Preprocess: convert file with invoice-extractor appearance back to invoice_extractor type
+      if attributes.type is 'file' and attributes.appearance
+        appearanceParts = attributes.appearance.split(' ')
+        if 'invoice-extractor' in appearanceParts
+          attributes.type = 'invoice_extractor'
+          # Remove invoice-extractor from appearance and keep the rest
+          remainingAppearance = (part for part in appearanceParts when part isnt 'invoice-extractor').join(' ')
+          if remainingAppearance
+            attributes.appearance = remainingAppearance
+          else
+            delete attributes.appearance
+          # Move body::invoice-extractor-config if it exists
+          if attributes['body::invoice-extractor-config']
+            # Keep it as is, it's already in the right place
+      
       for key, val of attributes when key is ""
         delete attributes[key]
       super(attributes, options)
@@ -90,7 +105,12 @@ module.exports = do ->
         # Handle invoice_extractor: convert to file type with invoice-extractor appearance
         else if key is 'type' and val.get('typeId') is 'invoice_extractor'
           outObj['type'] = 'file'
-          outObj['appearance'] = 'invoice-extractor'
+          # Merge invoice-extractor with any existing appearance
+          existingAppearance = @getValue('appearance')
+          if existingAppearance and existingAppearance isnt ''
+            outObj['appearance'] = "#{existingAppearance} invoice-extractor"
+          else
+            outObj['appearance'] = 'invoice-extractor'
           continue
         else
           result = @getValue(key)
