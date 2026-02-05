@@ -289,7 +289,7 @@ export const QUESTION_TYPES: QuestionTypes = Object.freeze({
   file: { label: t('File'), icon: 'qt-file', id: QuestionTypeName.file },
   invoice_extractor: {
     label: t('Invoice Extractor'),
-    icon: 'qt-file',
+    icon: 'qt-invoice',
     id: QuestionTypeName.invoice_extractor,
   },
   geopoint: {

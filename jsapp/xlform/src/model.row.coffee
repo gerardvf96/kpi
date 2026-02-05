@@ -94,6 +94,8 @@ module.exports = do ->
 
     toJSON2: ->
       outObj = {}
+      isInvoiceExtractor = @get('type')?.get('typeId') is 'invoice_extractor'
+      
       for [key, val] in @attributesArray()
         if key is 'type' and val.get('typeId') in ['select_one', 'select_multiple']
           outObj['type'] = val.get('typeId')
@@ -108,6 +110,9 @@ module.exports = do ->
             outObj['appearance'] = "#{existingAppearance} invoice-extractor"
           else
             outObj['appearance'] = 'invoice-extractor'
+          continue
+        # Skip appearance for invoice_extractor as it's already handled above
+        else if key is 'appearance' and isInvoiceExtractor
           continue
         else
           result = @getValue(key)
