@@ -33,9 +33,6 @@ module.exports = do ->
             attributes.appearance = remainingAppearance
           else
             delete attributes.appearance
-          # Move body::invoice-extractor-config if it exists
-          if attributes['body::invoice-extractor-config']
-            # Keep it as is, it's already in the right place
       
       for key, val of attributes when key is ""
         delete attributes[key]
