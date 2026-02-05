@@ -11,6 +11,7 @@
 @use '../partials/form_builder/settings_skiplogic';
 @use '../partials/form_builder/params_view';
 @use '../partials/form_builder/mandatory_setting';
+@use '../partials/form_builder/invoice_extractor_config';
 @use '../partials/form_builder/misc';
 
 // All variables are now in kobo.scss
