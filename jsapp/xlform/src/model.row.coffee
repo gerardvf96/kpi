@@ -34,6 +34,13 @@ module.exports = do ->
           else
             delete attributes.appearance
       
+      # Preprocess: convert actual newlines to \n in note labels for display
+      if attributes.type is 'note'
+        for key, val of attributes
+          # Handle both regular and translated labels (e.g., label, label::en, hint::es)
+          if key.match(/^(label|hint)(::.*)?$/) and _.isString(val)
+            attributes[key] = val.replace(/\n/g, '\\n')
+      
       for key, val of attributes when key is ""
         delete attributes[key]
       super(attributes, options)
@@ -95,6 +102,7 @@ module.exports = do ->
     toJSON2: ->
       outObj = {}
       isInvoiceExtractor = @get('type')?.get('typeId') is 'invoice_extractor'
+      isNote = @get('type')?.get('typeId') is 'note'
       
       for [key, val] in @attributesArray()
         if key is 'type' and val.get('typeId') in ['select_one', 'select_multiple']
@@ -120,6 +128,10 @@ module.exports = do ->
           if _.isBoolean(result)
             outObj[key] = $configs.boolOutputs[if result then "true" else "false"]
           else if '' isnt result
+            # For note type questions, convert literal \n to actual newlines in label/hint
+            # Handle both regular and translated labels (e.g., label, label::en, hint::es)
+            if isNote and key.match(/^(label|hint)(::.*)?$/) and _.isString(result)
+              result = result.replace(/\\n/g, '\n')
             outObj[key] = result
       return outObj
 
