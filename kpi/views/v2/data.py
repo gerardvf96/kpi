@@ -68,6 +68,7 @@ from kpi.utils.schema_extensions.response import (
     open_api_200_ok_response,
     open_api_204_empty_response,
 )
+from kpi.utils.submission import unflatten_submission
 from kpi.utils.viewset_mixins import AssetNestedObjectViewsetMixin
 from kpi.utils.xml import (
     fromstring_preserve_root_xmlns,
@@ -133,6 +134,16 @@ from kpi.utils.xml import (
             require_auth=False,
             raise_access_forbidden=False,
         ),
+        parameters=[
+            OpenApiParameter(
+                name='flattened',
+                type=bool,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Return flattened data structure with "/" separated keys (default: true). '
+                            'Set to false for hierarchical nested structure. Only applies to JSON format.',
+            ),
+        ],
     ),
     retrieve=extend_schema(
         description=read_md('kpi', 'data/retrieve.md'),
@@ -150,6 +161,14 @@ from kpi.utils.xml import (
                 location=OpenApiParameter.PATH,
                 required=True,
                 description='ID of the data',
+            ),
+            OpenApiParameter(
+                name='flattened',
+                type=bool,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Return flattened data structure with "/" separated keys (default: true). '
+                            'Set to false for hierarchical nested structure. Only applies to JSON format.',
             ),
         ],
     ),
@@ -379,6 +398,10 @@ class DataViewSet(
         format_type = kwargs.get('format', request.GET.get('format', 'json'))
         deployment = self._get_deployment()
         filters = self._filter_mongo_query(request)
+        
+        # Get flattened parameter (default to True for backward compatibility)
+        flattened_param = request.GET.get('flattened', 'true').lower()
+        flattened = flattened_param in ('true', '1', 'yes')
 
         if format_type == 'geojson':
             # For GeoJSON, get the submissions as JSON and let
@@ -403,6 +426,11 @@ class DataViewSet(
                 raise serializers.ValidationError(message)
             logging.warning(message, exc_info=True)
             raise serializers.ValidationError('Unsupported query')
+        
+        # Apply unflattening if requested and format is JSON
+        if not flattened and format_type == SUBMISSION_FORMAT_TYPE_JSON:
+            submissions = (unflatten_submission(submission) for submission in submissions)
+        
         # Create a dummy list to let the Paginator do all the calculation
         # for pagination because it does not need the list of real objects.
         # It avoids retrieving all the objects from MongoDB
@@ -429,6 +457,10 @@ class DataViewSet(
             'request': request,
         }
         filters = self._filter_mongo_query(request)
+        
+        # Get flattened parameter (default to True for backward compatibility)
+        flattened_param = request.GET.get('flattened', 'true').lower()
+        flattened = flattened_param in ('true', '1', 'yes')
 
         # Unfortunately, Django expects that the URL parameter is `pk`,
         # its name cannot be changed (easily).
@@ -460,6 +492,11 @@ class DataViewSet(
             raise Http404
 
         submission = list(submissions)[0]
+        
+        # Apply unflattening if requested and format is JSON
+        if not flattened and format_type == SUBMISSION_FORMAT_TYPE_JSON:
+            submission = unflatten_submission(submission)
+        
         return Response(submission)
 
     @extend_schema(

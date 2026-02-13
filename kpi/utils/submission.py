@@ -1,9 +1,81 @@
 from collections import defaultdict
+from typing import Any
 
 from django.core.exceptions import SuspiciousFileOperation
 
 from kpi.deployment_backends.kc_access.storage import default_kobocat_storage
 from kpi.utils.log import logging
+
+
+def unflatten_submission(submission: dict, parent_path: str = '') -> dict:
+    """
+    Convert a flattened submission dictionary (with "/" separated keys) into
+    a nested hierarchical structure.
+    
+    Example:
+        Input:  {"formhub/uuid": "123", "group/field": "value"}
+        Output: {"formhub": {"uuid": "123"}, "group": {"field": "value"}}
+    
+    Keys that start with "_" (like "_id", "_uuid", etc.) are kept at the root level
+    and not nested, unless they contain a "/" separator.
+    
+    Special handling for arrays: if an array contains dictionaries with keys that
+    include the parent path as a prefix, those prefixes are stripped from the
+    array item keys.
+    
+    Args:
+        submission: A flattened submission dictionary
+        parent_path: The parent path prefix to strip from keys (used internally)
+        
+    Returns:
+        A nested dictionary with hierarchical structure
+    """
+    result = {}
+    
+    for key, value in submission.items():
+        # Strip parent path prefix if present (for array items)
+        original_key = key
+        if parent_path and key.startswith(parent_path + '/'):
+            key = key[len(parent_path) + 1:]  # +1 for the "/"
+        
+        # Handle nested values recursively (for arrays of objects)
+        if isinstance(value, list):
+            # Pass the current path so array items can strip their prefixes
+            processed_list = []
+            for item in value:
+                if isinstance(item, dict):
+                    # The items in the array might have keys starting with the array's full path
+                    # We need to strip that prefix
+                    processed_list.append(unflatten_submission(item, original_key))
+                else:
+                    processed_list.append(item)
+            value = processed_list
+        elif isinstance(value, dict):
+            value = unflatten_submission(value, parent_path)
+        
+        # Split the key by "/"
+        if '/' in key:
+            parts = key.split('/')
+            current = result
+            
+            # Navigate/create the nested structure
+            for i, part in enumerate(parts[:-1]):
+                if part not in current:
+                    current[part] = {}
+                elif not isinstance(current[part], dict):
+                    # If the intermediate key exists but is not a dict,
+                    # we need to keep the original structure
+                    # This shouldn't typically happen, but handle it gracefully
+                    break
+                current = current[part]
+            else:
+                # Set the final value
+                current[parts[-1]] = value
+        else:
+            # No "/" in key, keep it at the root level
+            result[key] = value
+    
+    return result
 
 
 def get_attachment_filenames_and_xpaths(
