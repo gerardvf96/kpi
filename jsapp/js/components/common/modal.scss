@@ -35,14 +35,15 @@ $z-modal-x: 10;
   max-height: 95%;
   overflow-x: auto;
   visibility: hidden;
+  border-radius: 10px !important;
 
   &.modal--open {
     visibility: visible;
   }
 
   &.modal--large {
-    height: 80%;
-    width: 80%;
+    height: 90%;
+    width: 90%;
     max-width: 1240px;
 
     &.modal--large-shorter {
@@ -105,7 +106,7 @@ $z-modal-x: 10;
 
 .modal__header {
   min-height: 70px;
-  background: colors.$kobo-blue;
+  background: #66afe9;
   color: colors.$kobo-white;
   display: flex;
   justify-content: space-between;

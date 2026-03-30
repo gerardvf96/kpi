@@ -19,6 +19,8 @@ from rest_framework_extensions.mixins import NestedViewSetMixin
 from kobo.apps.audit_log.base_views import AuditLoggedViewSet
 from kobo.apps.audit_log.models import AuditType
 from kobo.apps.audit_log.utils import SubmissionUpdate
+from kobo.apps.reports.constants import INFERRED_VERSION_ID_KEY
+from kobo.apps.reports.report_data import build_formpack
 from kobo.apps.openrosa.apps.logger.xform_instance_parser import remove_uuid_prefix
 from kobo.apps.openrosa.libs.utils.logger_tools import http_open_rosa_error_handler
 from kpi.authentication import EnketoSessionAuthentication
@@ -809,6 +811,16 @@ class DataViewSet(
 
         # Let's use the latest **deployed** version uid temporarily
         version_uid = self.asset.latest_deployed_version.uid
+
+        if action_ == 'view':
+            _, submissions_stream = build_formpack(
+                self.asset,
+                submission_stream=[submission_json],
+                use_all_form_versions=True
+            )
+            version_uid = list(submissions_stream)[0][INFERRED_VERSION_ID_KEY]
+        elif action_ == 'edit':
+            submission_xml_root.find('__version__').text = version_uid
 
         # Retrieve the XML root node name from the submission. The instance's
         # root node name specified in the form XML (i.e. the first child of
