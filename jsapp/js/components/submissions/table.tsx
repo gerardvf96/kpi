@@ -690,7 +690,7 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
             onHide={this.onHideField.bind(this)}
             isFieldFrozen={tableStore.isFieldFrozen(SUBMISSION_STATUS_ID_PROP)}
             onFrozenChange={this.onFieldFrozenChange.bind(this)}
-            additionalTriggerContent={<span className='column-header-title'>{t('Estado borrador')}</span>}
+            additionalTriggerContent={<span className='column-header-title'>{t('en curs')}</span>}
           />
         </div>
       ),
@@ -702,42 +702,29 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       className: elClassNames.join(' '),
       headerClassName: elClassNames.join(' '),
       Filter: ({ filter, onChange }) => {
-        const currentOption: SubmissionStatusOption =
-          SUBMISSION_STATUS_OPTIONS.find((item) => item.value === filter?.value) || SUBMISSION_STATUS_SHOW_ALL_OPTION
-
         return (
-          <SubmissionStatusDropdown
-            onChange={(newValue) => {
-              // For `show_all` option we need to pass empty string
-              if (newValue === SubmissionStatusAdditionalName.show_all) {
-                onChange('')
-              } else {
-                onChange(newValue)
-              }
-            }}
-            currentValue={currentOption}
-            isForHeaderFilter
-          />
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={filter?.value === 'pending'}
+              onChange={(e) => {
+                onChange(e.target.checked ? 'pending' : '')
+              }}
+              style={{ margin: '0 5px' }}
+            />
+            <span style={{ fontSize: '12px' }}>{t('Només en curs')}</span>
+          </label>
         )
       },
       Cell: (row: CellInfo) => {
-        const statusOption = this.getCurrentSubmissionStatusOption(row.original)
+        const statusValue = row.original._submission_status
         
-        if (!statusOption) {
-          return <span>-</span>
+        // Show checkmark only for pending submissions
+        if (statusValue === 'pending') {
+          return <span style={{ textAlign: 'center', display: 'block', fontSize: '16px' }}>✓</span>
         }
 
-        return (
-          <SubmissionStatusDropdown
-            onChange={(newValue) => {
-              this.onSubmissionStatusChange(row.original._id, newValue)
-            }}
-            currentValue={statusOption}
-            isDisabled={
-              !userHasPermForSubmission(PERMISSIONS_CODENAMES.validate_submissions, this.props.asset, row.original)
-            }
-          />
-        )
+        return <span></span>
       },
     }
   }

@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Verificar Esborrany{% endblock %}
+{% block title %}Esborrany Pendent{% endblock %}
 
 {% block head_stylesheets %}
   <style>
@@ -26,7 +26,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       padding: 40px;
-      max-width: 450px;
+      max-width: 500px;
       width: 100%;
     }
     
@@ -65,137 +65,15 @@
       margin-bottom: 30px;
     }
     
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    label {
-      display: block;
-      color: #333;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 8px;
-    }
-    
-    input[type="email"],
-    input[type="text"] {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 16px;
-      transition: border-color 0.2s;
-    }
-    
-    input[type="email"]:focus,
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #6c757d;
-    }
-    
-    button {
-      width: 100%;
-      padding: 14px;
-      background-color: #495057;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    button:hover {
-      background-color: #343a40;
-    }
-    
-    button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-    
-    .message {
-      padding: 12px 16px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-    
-    .message.success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    
-    .message.error {
+    .error-message {
+      padding: 16px;
       background-color: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
-    }
-    
-    .message.info {
-      background-color: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
-    }
-    
-    .hidden {
-      display: none;
-    }
-    
-    .step {
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .result-icon {
-      font-size: 64px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    
-    .result-icon.success {
-      color: #28a745;
-    }
-    
-    .result-icon.error {
-      color: #dc3545;
-    }
-    
-    .logged-in-user {
-      background-color: #f8f9fa;
-      border: 1px solid #dee2e6;
       border-radius: 4px;
-      padding: 12px 16px;
       margin-bottom: 20px;
       font-size: 14px;
-      color: #333;
       text-align: center;
-    }
-    
-    .logged-in-user strong {
-      color: #9D2235;
-      font-weight: 600;
-    }
-    
-    .back-link {
-      text-align: center;
-      margin-top: 20px;
-    }
-    
-    .back-link a {
-      color: #9D2235;
-      text-decoration: none;
-      font-size: 14px;
-    }
-    
-    .back-link a:hover {
-      text-decoration: underline;
     }
     
     .submission-info {
@@ -256,7 +134,7 @@
       color: #155724;
     }
     
-    .edit-button {
+    .action-button {
       display: inline-block;
       width: 100%;
       padding: 14px;
@@ -270,34 +148,135 @@
       font-weight: 500;
       cursor: pointer;
       transition: background-color 0.2s;
-      margin-top: 15px;
+      margin-top: 12px;
     }
     
-    .edit-button:hover {
+    .action-button:hover {
       background-color: #343a40;
     }
     
-    .recipients-management {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #dee2e6;
+    .action-button.secondary {
+      background-color: #6c757d;
     }
     
-    .recipients-management h4 {
-      margin: 0 0 15px 0;
-      font-size: 14px;
-      color: #333;
-      font-weight: 600;
+    .action-button.secondary:hover {
+      background-color: #5a6268;
+    }
+  </style>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+  <div class="logo-container">
+    <a href="https://www.diba.cat" target="_blank" rel="noopener noreferrer">
+      <img src="https://media.diba.cat/diba/maqueta/logos/logodiba_header.svg" alt="Diputació de Barcelona">
+    </a>
+  </div>
+  
+  {% if error %}
+    <!-- Error State -->
+    <h1>Error</h1>
+    <div class="error-message">{{ error }}</div>
+  {% else %}
+    <!-- Success State - Show Submission Info -->
+    <h1>Esborrany Pendent</h1>
+    <p class="subtitle">Informació de l'esborrany i opcions d'edició</p>
+    
+    <div class="submission-info">
+      <h3>Detalls de l'esborrany</h3>
+      <div class="info-row">
+        <span class="info-label">ID:</span>
+        <span class="info-value" id="info-submission-id">{{ submission_id }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Formulari:</span>
+        <span class="info-value" id="info-form-name">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Última edició:</span>
+        <span class="info-value" id="info-last-edit">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Estat:</span>
+        <span class="info-value">
+          <span class="status-badge pending" id="info-status">en curs</span>
+        </span>
+      </div>
+      
+      <!-- Action Buttons -->
+      <a href="#" id="enketo-edit-link" class="action-button">
+        Editar esborrany
+      </a>
+      
+      <a href="#" id="enketo-view-link" class="action-button" target="_blank" style="display: none;">
+        Veure tramesa (obre en pestanya nova)
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<script id="page-data" type="application/json">
+{
+  "submissionId": "{{ submission_id }}",
+  "submissionInfo": {% if submission_info %}{{ submission_info|safe }}{% else %}null{% endif %},
+  "error": {% if error %}"{{ error|escapejs }}"{% else %}null{% endif %}
+}
+</script>
+
+<script>
+(function() {
+  // Load data from template
+  const pageData = JSON.parse(document.getElementById('page-data').textContent);
+  const submissionId = pageData.submissionId;
+  const submissionInfo = pageData.submissionInfo;
+  const error = pageData.error;
+  
+  // If there's an error, nothing to do
+  if (error) {
+    return;
+  }
+  
+  // If we have submission info, populate the page
+  if (submissionInfo) {
+    const infoFormName = document.getElementById('info-form-name');
+    const infoLastEdit = document.getElementById('info-last-edit');
+    const infoStatus = document.getElementById('info-status');
+    const enketoEditLink = document.getElementById('enketo-edit-link');
+    const enketoViewLink = document.getElementById('enketo-view-link');
+    
+    // Populate fields
+    if (infoFormName) infoFormName.textContent = submissionInfo.form_name || 'Desconegut';
+    if (infoLastEdit) infoLastEdit.textContent = submissionInfo.last_edit_date || 'N/A';
+    
+    // Map status to Catalan labels
+    const statusLabel = submissionInfo.status === 'pending' ? 'en curs' : 
+                       (submissionInfo.status === 'completed' ? 'presentat' : submissionInfo.status);
+    if (infoStatus) {
+      infoStatus.textContent = statusLabel;
+      infoStatus.className = 'status-badge ' + (submissionInfo.status || 'pending');
     }
     
-    .recipient-list {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 15px 0;
-    }
-    
-    .recipient-item {
-      display: flex;
+    // Set button URLs and visibility based on status
+    if (submissionInfo.status === 'pending' && submissionInfo.edit_url) {
+      // Pending: show edit and view buttons (only for pending)
+      if (enketoEditLink) {
+        enketoEditLink.href = submissionInfo.edit_url;
+        enketoEditLink.style.display = 'inline-block';
+      }
+      
+      if (enketoViewLink && submissionInfo.view_url) {
+        enketoViewLink.href = submissionInfo.view_url;
+        enketoViewLink.style.display = 'inline-block';
+      }
+    } else {
+      // Non-pending: hide all buttons (view link won't work)
+      if (enketoEditLink) enketoEditLink.style.display = 'none';
+      if (enketoViewLink) enketoViewLink.style.display = 'none';
+    }  
+  }
+})();
+</script>
+{% endblock %}
       justify-content: space-between;
       align-items: center;
       padding: 8px 12px;
