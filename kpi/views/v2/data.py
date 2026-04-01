@@ -820,7 +820,9 @@ class DataViewSet(
             )
             version_uid = list(submissions_stream)[0][INFERRED_VERSION_ID_KEY]
         elif action_ == 'edit':
-            submission_xml_root.find('__version__').text = version_uid
+            # Ensure __version__ element exists before setting its value
+            el = get_or_create_element(submission_xml_root, '__version__')
+            el.text = version_uid
 
         # Retrieve the XML root node name from the submission. The instance's
         # root node name specified in the form XML (i.e. the first child of

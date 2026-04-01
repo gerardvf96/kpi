@@ -307,6 +307,10 @@ class EnketoEditProxyView(APIView):
             # Use the latest deployed version
             version_uid = asset.latest_deployed_version.uid
             
+            # Ensure __version__ element exists and set its value
+            el = get_or_create_element(submission_xml_root, '__version__')
+            el.text = version_uid
+            
             # Get XML root node name from submission
             xml_root_node_name = submission_xml_root.tag
             
@@ -607,6 +611,10 @@ class EnketoEditProxyView(APIView):
             # Use the latest deployed version
             version_uid = asset.latest_deployed_version.uid
             
+            # Ensure __version__ element exists and set its value
+            el = get_or_create_element(submission_xml_root, '__version__')
+            el.text = version_uid
+            
             # Get XML root node name from submission
             xml_root_node_name = submission_xml_root.tag
             
@@ -815,6 +823,11 @@ class EnketoViewProxyView(APIView):
                 el.text = 'uuid:' + submission_json['_uuid']
             
             version_uid = asset.latest_deployed_version.uid
+            
+            # Ensure __version__ element exists and set its value
+            el = get_or_create_element(submission_xml_root, '__version__')
+            el.text = version_uid
+            
             xml_root_node_name = submission_xml_root.tag
             
             # Create snapshot

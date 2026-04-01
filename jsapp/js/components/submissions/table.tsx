@@ -690,7 +690,7 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
             onHide={this.onHideField.bind(this)}
             isFieldFrozen={tableStore.isFieldFrozen(SUBMISSION_STATUS_ID_PROP)}
             onFrozenChange={this.onFieldFrozenChange.bind(this)}
-            additionalTriggerContent={<span className='column-header-title'>{t('en curs')}</span>}
+            additionalTriggerContent={<span className='column-header-title'>{t('Estat enviament')}</span>}
           />
         </div>
       ),
@@ -719,9 +719,15 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       Cell: (row: CellInfo) => {
         const statusValue = row.original._submission_status
         
-        // Show checkmark only for pending submissions
+        // Show readonly badge for pending submissions
         if (statusValue === 'pending') {
-          return <span style={{ textAlign: 'center', display: 'block', fontSize: '16px' }}>✓</span>
+          return (
+            <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
+              <bem.KoboSelect__optionBadge m={['pending']}>
+                {t('En curs')}
+              </bem.KoboSelect__optionBadge>
+            </div>
+          )
         }
 
         return <span></span>
