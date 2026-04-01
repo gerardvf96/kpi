@@ -390,13 +390,6 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
     return foundOption || VALIDATION_STATUS_NO_OPTION
   }
 
-  getCurrentSubmissionStatusOption(originalRow: SubmissionResponse): SubmissionStatusOption | null {
-    const foundOption = SUBMISSION_STATUS_OPTIONS.find(
-      (option) => option.value === originalRow._submission_status,
-    )
-    return foundOption || null
-  }
-
   /**
    * Callback for dropdown.
    */
