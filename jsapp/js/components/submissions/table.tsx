@@ -390,6 +390,13 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
     return foundOption || VALIDATION_STATUS_NO_OPTION
   }
 
+  getCurrentSubmissionStatusOption(originalRow: SubmissionResponse): SubmissionStatusOption | null {
+    const foundOption = SUBMISSION_STATUS_OPTIONS.find(
+      (option) => option.value === originalRow._submission_status,
+    )
+    return foundOption || null
+  }
+
   /**
    * Callback for dropdown.
    */
@@ -702,21 +709,16 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       className: elClassNames.join(' '),
       headerClassName: elClassNames.join(' '),
       Cell: (row: CellInfo) => {
-        const statusValue = row.original._submission_status
+        const currentOption = this.getCurrentSubmissionStatusOption(row.original)
         
-        // Create a fake option for display
-        const displayOption = statusValue === 'pending' 
-          ? { value: 'pending', label: t('En curs') }
-          : null
-        
-        if (!displayOption) {
+        if (!currentOption) {
           return <span></span>
         }
         
         return (
           <SubmissionStatusDropdown
             onChange={() => {}} // No-op, read-only
-            currentValue={displayOption}
+            currentValue={currentOption}
             isDisabled={true}
           />
         )
