@@ -56,6 +56,10 @@ export default function SubmissionStatusDropdown(props: SubmissionStatusDropdown
 
   // for rendering the selected value as colorful badge
   function CustomDropdownIndicator(innerProps: DropdownIndicatorProps<SubmissionStatusOption>) {
+    // Hide dropdown indicator if disabled and not for header filter (read-only display)
+    if (props.isDisabled && !props.isForHeaderFilter) {
+      return null
+    }
     return (
       <components.DropdownIndicator {...innerProps}>
         <i className='k-icon k-icon-caret-down' />
@@ -75,6 +79,9 @@ export default function SubmissionStatusDropdown(props: SubmissionStatusDropdown
     selectClassNames.push('kobo-select--for-nonwhite-background')
   }
 
+  // For read-only display (disabled but not header filter), prevent interaction but keep normal colors
+  const isReadOnlyDisplay = props.isDisabled && !props.isForHeaderFilter
+
   return (
     <Select
       components={{
@@ -82,7 +89,8 @@ export default function SubmissionStatusDropdown(props: SubmissionStatusDropdown
         SingleValue: CustomSingleValue,
         DropdownIndicator: CustomDropdownIndicator,
       }}
-      isDisabled={props.isDisabled}
+      isDisabled={props.isDisabled && props.isForHeaderFilter}
+      openMenuOnClick={isReadOnlyDisplay ? false : undefined}
       isClearable={false}
       isSearchable={false}
       value={props.currentValue}

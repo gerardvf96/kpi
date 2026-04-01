@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Esborrany Pendent{% endblock %}
+{% block title %}Enviament en curs{% endblock %}
 
 {% block head_stylesheets %}
   <style>
@@ -26,7 +26,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       padding: 40px;
-      max-width: 800px;
+      max-width: 550px;
       width: 100%;
     }
     
@@ -104,7 +104,7 @@
     }
     
     .info-label {
-      font-weight: 500;
+      font-weight: 600;
       color: #666;
       font-size: 14px;
     }
@@ -180,7 +180,7 @@
   {% else %}
     <!-- Success State - Show Submission Info -->
     <div class="submission-info">
-      <h3>Detalls de l'esborrany</h3>
+      <h3>Resum</h3>
       <div class="info-row">
         <span class="info-label">ID:</span>
         <span class="info-value" id="info-submission-id">{{ submission_id }}</span>
@@ -202,11 +202,11 @@
       
       <!-- Action Buttons -->
       <a href="#" id="enketo-edit-link" class="action-button">
-        Editar esborrany
+        Editar dades (obre en pestanya actual)
       </a>
       
       <a href="#" id="enketo-view-link" class="action-button" target="_blank" style="display: none;">
-        Veure tramesa (obre en pestanya nova)
+        Veure dades (obre en pestanya nova)
       </a>
     </div>
   {% endif %}

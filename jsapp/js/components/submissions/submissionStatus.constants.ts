@@ -36,11 +36,11 @@ export const SUBMISSION_STATUS_SHOW_ALL_OPTION: SubmissionStatusOption = {
 export const SUBMISSION_STATUS_OPTIONS: SubmissionStatusOption[] = [
   {
     value: SubmissionStatusName.pending,
-    label: t('en curs'),
+    label: t('En curs'),
   },
   {
     value: SubmissionStatusName.completed,
-    label: t('presentat'),
+    label: t('Presentat'),
   },
 ]
 
