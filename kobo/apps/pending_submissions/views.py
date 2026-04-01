@@ -95,11 +95,31 @@ class PendingSubmissionPageView(APIView):
         )
         context['submission_info'] = json.dumps(submission_info)
         
-        return TemplateResponse(
+        # Generate and set JWT token as cookie for Enketo authentication
+        jwt_payload = {
+            'type': 'pending_submission_access',
+            'submission_id': submission_id,
+            'exp': datetime.utcnow() + timedelta(hours=24),  # Token valid for 24 hours
+        }
+        jwt_token = jwt.encode(jwt_payload, settings.SECRET_KEY, algorithm='HS256')
+        
+        response = TemplateResponse(
             request,
             'pending_submissions/verify.html',
             context
         )
+        
+        # Set JWT token as cookie
+        response.set_cookie(
+            key='pending_submission_token',
+            value=jwt_token,
+            domain=settings.SESSION_COOKIE_DOMAIN,
+            secure=settings.SESSION_COOKIE_SECURE or None,
+            httponly=True,
+            samesite='Lax',
+        )
+        
+        return response
     
     def _find_submission(self, submission_id):
         """Find submission by rootUuid across all survey assets"""
@@ -322,12 +342,6 @@ class EnketoEditProxyView(APIView):
                 submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
             )
             
-            # Extract submission_id from meta/rootUuid for return URL
-            submission_id = remove_uuid_prefix(submission_json['meta/rootUuid'])
-            return_url = request.build_absolute_uri(
-                f'/pending-submissions/{submission_id}/'
-            )
-            
             # Prepare data for Enketo API
             data = {
                 'server_url': versioned_reverse(
@@ -339,18 +353,19 @@ class EnketoEditProxyView(APIView):
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
                 'form_id': snapshot.uid,
-                'return_url': return_url
+                'return_url': request.build_absolute_uri(
+                    f'/pending-submissions/{remove_uuid_prefix(submission_json["meta/rootUuid"])}/'
+                )
             }
             
             # Add attachments if any
             attachments = deployment.get_attachment_objects_from_dict(submission_json)
             for attachment in attachments:
                 key_ = f'instance_attachments[{attachment.media_file_basename}]'
-                data[key_] = versioned_reverse(
-                    viewname='attachment-detail',
+                data[key_] = reverse(
+                    'attachment-detail',
                     args=(asset.uid, internal_submission_id, attachment.uid),
                     request=request,
-                    url_namespace=API_NAMESPACES['default'],
                 )
             
             # Make request to Enketo API
@@ -645,12 +660,6 @@ class EnketoViewProxyView(APIView):
                 submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
             )
             
-            # Extract submission_id for return URL
-            submission_id = remove_uuid_prefix(submission_json['meta/rootUuid'])
-            return_url = request.build_absolute_uri(
-                f'/pending-submissions/{submission_id}/'
-            )
-            
             # Prepare data for Enketo VIEW API (not edit)
             data = {
                 'server_url': versioned_reverse(
@@ -662,18 +671,19 @@ class EnketoViewProxyView(APIView):
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
                 'form_id': snapshot.uid,
-                'return_url': return_url
+                'return_url': request.build_absolute_uri(
+                    f'/pending-submissions/{remove_uuid_prefix(submission_json["meta/rootUuid"])}/'
+                )
             }
             
             # Add attachments if any
             attachments = deployment.get_attachment_objects_from_dict(submission_json)
             for attachment in attachments:
                 key_ = f'instance_attachments[{attachment.media_file_basename}]'
-                data[key_] = versioned_reverse(
-                    viewname='attachment-detail',
+                data[key_] = reverse(
+                    'attachment-detail',
                     args=(asset.uid, internal_submission_id, attachment.uid),
                     request=request,
-                    url_namespace=API_NAMESPACES['default'],
                 )
             
             # Make request to Enketo VIEW INSTANCE API endpoint

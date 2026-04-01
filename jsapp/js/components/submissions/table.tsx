@@ -701,34 +701,25 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       width: this._getColumnWidth(SUBMISSION_STATUS_ID_PROP),
       className: elClassNames.join(' '),
       headerClassName: elClassNames.join(' '),
-      Filter: ({ filter, onChange }) => {
-        return (
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={filter?.value === 'pending'}
-              onChange={(e) => {
-                onChange(e.target.checked ? 'pending' : '')
-              }}
-              style={{ margin: '0 5px' }}
-            />
-            <span style={{ fontSize: '12px' }}>{t('Només en curs')}</span>
-          </label>
-        )
-      },
       Cell: (row: CellInfo) => {
         const statusValue = row.original._submission_status
         
-        // Show readonly badge for pending submissions
-        if (statusValue === 'pending') {
-          return (
-            <bem.KoboSelect__optionBadge m={['pending']}>
-              {t('En curs')}
-            </bem.KoboSelect__optionBadge>
-          )
+        // Create a fake option for display
+        const displayOption = statusValue === 'pending' 
+          ? { value: 'pending', label: t('En curs') }
+          : null
+        
+        if (!displayOption) {
+          return <span></span>
         }
-
-        return <span></span>
+        
+        return (
+          <SubmissionStatusDropdown
+            onChange={() => {}} // No-op, read-only
+            currentValue={displayOption}
+            isDisabled={true}
+          />
+        )
       },
     }
   }
