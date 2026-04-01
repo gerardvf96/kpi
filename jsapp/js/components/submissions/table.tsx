@@ -722,11 +722,9 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
         // Show readonly badge for pending submissions
         if (statusValue === 'pending') {
           return (
-            <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
-              <bem.KoboSelect__optionBadge m={['pending']}>
-                {t('En curs')}
-              </bem.KoboSelect__optionBadge>
-            </div>
+            <bem.KoboSelect__optionBadge m={['pending']}>
+              {t('En curs')}
+            </bem.KoboSelect__optionBadge>
           )
         }
 
