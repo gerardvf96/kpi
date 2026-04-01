@@ -482,6 +482,11 @@ export default Object.assign(
         survey.on('change', this.onSurveyChange)
       }
 
+      // Default to the first available style when none is set
+      if (!_state.settings__style) {
+        _state.settings__style = AVAILABLE_FORM_STYLES[0].value
+      }
+
       this.setState(_state)
     },
 

@@ -155,6 +155,10 @@ msgstr "Tema de cuadrícula + múltiples páginas"
 msgid "Grid theme + Multiple pages + headings in ALL CAPS"
 msgstr "Tema de cuadrícula + múltiples páginas + encabezados en MAYÚSCULA"
 
+#: .Width+units
+msgid "Width units"
+msgstr "Anchura en unidades"
+
 #: .question
 msgid "question"
 msgstr "pregunta"

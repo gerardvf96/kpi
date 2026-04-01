@@ -471,6 +471,17 @@ module.exports = do ->
     insertInDOM: -> return
 
   viewRowDetail.DetailViewMixins.appearance =
+    _extractWidth: (appearance) ->
+      match = (appearance or '').match(/\bw(\d+)\b/)
+      if match then parseInt(match[1]) else 4
+
+    _stripWidth: (appearance) ->
+      (appearance or '').replace(/\bw\d+\b/g, '').replace(/\s+/g, ' ').trim()
+
+    _buildAppearance: (base, width) ->
+      base = (base or '').trim()
+      if base then "#{base} w#{width}" else "w#{width}"
+
     getTypes: () ->
       fieldListType = ['field-list', 'Show all questions in this group on the same screen']
       groupTypes = ['select', fieldListType, ['other', 'Advanced']]
@@ -500,19 +511,28 @@ module.exports = do ->
         kobomatrix: [fieldListType]
 
       return types[@model._parent.getValue('type').split(' ')[0]]
-    html: ->
 
+    _buildWidthSelect: (selectedWidth) ->
+      options = ("<option value=\"#{i}\"#{if i is selectedWidth then ' selected' else ''}>#{i}</option>" for i in [1..10]).join('')
+      """<select class="appearance-width-units">#{options}</select>"""
+
+    html: ->
       @$el.addClass("card__settings__fields--active")
+      widthField = viewRowDetail.Templates.field(
+        @_buildWidthSelect(4),
+        "#{@cid}-width",
+        t("Width units")
+      )
       if @model_is_group(@model)
-        return viewRowDetail.Templates.dropdown @cid, @model.key, @getTypes(), t("Appearance (advanced)")
+        return viewRowDetail.Templates.dropdown(@cid, @model.key, @getTypes(), t("Appearance (advanced)")) + widthField
       else
         appearances = @getTypes()
         if appearances?
           appearances.push 'other'
           appearances.unshift 'select'
-          return viewRowDetail.Templates.dropdown @cid, @model.key, appearances, t("Appearance (advanced)")
+          return viewRowDetail.Templates.dropdown(@cid, @model.key, appearances, t("Appearance (advanced)")) + widthField
         else
-          return viewRowDetail.Templates.textbox @cid, @model.key, t("Appearance (advanced)"), 'text'
+          return viewRowDetail.Templates.textbox(@cid, @model.key, t("Appearance (advanced)"), 'text') + widthField
 
     model_is_group: (model) ->
       model._parent.constructor.key == 'group'
@@ -520,10 +540,20 @@ module.exports = do ->
     afterRender: ->
       $select = @$('select')
       $select.addClass('group__appearance')
-      modelValue = @model.get 'value'
+      modelValue = @model.get('value') or ''
+      baseValue = @_stripWidth(modelValue)
+      currentWidth = @_extractWidth(modelValue)
+
+      # Initialize and wire up the width units select
+      $widthInput = @$('.appearance-width-units')
+      $widthInput.val(String(currentWidth))
+      $widthInput.on 'change', () =>
+        width = parseInt($widthInput.val()) or 4
+        @model.set 'value', @_buildAppearance(@_stripWidth(@model.get('value') or ''), width)
+
       if $select.length > 0
         $input = $('<input/>', {class:'text', type: 'text', width: 'auto'})
-        if modelValue != ''
+        if baseValue != ''
           appearanceTypes = @getTypes()
           # Because appearance types are now `string` or `string[]`, we need to
           # make a more detailed check to verify the model value is in the list
@@ -532,39 +562,51 @@ module.exports = do ->
           if appearanceTypes
             for appearanceType in appearanceTypes
               if typeof appearanceType is 'string'
-                hasValue = modelValue == appearanceType
+                hasValue = baseValue == appearanceType
               else if Array.isArray(appearanceType)
-                hasValue = modelValue == appearanceType[0]
+                hasValue = baseValue == appearanceType[0]
 
           if hasValue
-            $select.val(modelValue)
+            $select.val(baseValue)
           else
             $select.val('other')
-            @$('.settings__input').append $input
-            @listenForInputChange el: $input
+            $input.val(baseValue)
+            @$('.settings__input').first().append $input
+            @_listenForAppearanceText($input)
 
         $select.change () =>
+          width = parseInt($widthInput.val()) or 4
           if $select.val() == 'other'
-            @model.set 'value', ''
-            @$('.settings__input').append $input
-            @listenForInputChange el: $input
+            @model.set 'value', @_buildAppearance('', width)
+            @$('.settings__input').first().append $input
+            @_listenForAppearanceText($input)
           else if $select.val() == 'select'
-            @model.set 'value', ''
+            @model.set 'value', "w#{width}"
           else
-            @model.set 'value', $select.val()
+            @model.set 'value', @_buildAppearance($select.val(), width)
             $input.remove()
       else
-        $input = @$('input')
+        $input = @$('input:not(.appearance-width-units)')
         if $input.attr('type') == 'text'
-          @$('input[type=text]').val(modelValue)
-          @listenForInputChange()
+          $input.val(baseValue)
+          @_listenForAppearanceText($input)
         else if $input.attr('type') == 'checkbox'
-          if @model.get('value') == 'field-list'
+          if baseValue == 'field-list'
             $input.prop('checked', true)
           $input.on 'change', () =>
+            width = parseInt($widthInput.val()) or 4
             if $input.prop('checked')
-              @model.set 'value', 'field-list'
+              @model.set 'value', @_buildAppearance('field-list', width)
             else
-              @model.set 'value', ''
+              @model.set 'value', "w#{width}"
+
+    _listenForAppearanceText: ($input) ->
+      $widthInput = @$('.appearance-width-units')
+      $input.on 'change', () =>
+        width = parseInt($widthInput.val(), 10) or 4
+        @model.set 'value', @_buildAppearance($input.val(), width)
+      $input.on 'keyup', (evt) =>
+        if evt.key is 'Enter' or evt.keyCode is 13
+          $input.blur()
 
   viewRowDetail
