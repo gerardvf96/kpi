@@ -161,11 +161,11 @@ msgstr "Anchura en unidades"
 
 #: .Show+all+questions+in+this+group+on+the+same+screen
 msgid "Show all questions in this group on the same screen"
-msgstr "Mostrar el contenido de este grupo en la misma p\u00e1gina"
+msgstr "Mostrar el contenido de este grupo en la misma página"
 
 #: .Display
 msgid "Display"
-msgstr "Visualizaci\u00f3n"
+msgstr "Visualización"
 
 #: .question
 msgid "question"
