@@ -478,13 +478,25 @@ module.exports = do ->
     _stripWidth: (appearance) ->
       (appearance or '').replace(/\bw\d+\b/g, '').replace(/\s+/g, ' ').trim()
 
-    _buildAppearance: (base, width) ->
-      base = (base or '').trim()
-      if base then "#{base} w#{width}" else "w#{width}"
+    _hasFieldList: (appearance) ->
+      /\bfield-list\b/.test(appearance or '')
+
+    _stripFieldList: (appearance) ->
+      (appearance or '').replace(/\bfield-list\b/g, '').replace(/\s+/g, ' ').trim()
+
+    _stripAll: (appearance) ->
+      @_stripWidth(@_stripFieldList(appearance))
+
+    _buildAppearanceParts: (opts) ->
+      parts = []
+      if opts.fieldList then parts.push('field-list')
+      base = (opts.base or '').trim()
+      if base then parts.push(base)
+      parts.push("w#{opts.width or 4}")
+      parts.join(' ')
 
     getTypes: () ->
-      fieldListType = ['field-list', 'Show all questions in this group on the same screen']
-      groupTypes = ['select', fieldListType, ['other', 'Advanced']]
+      groupTypes = [['other', 'Advanced']]
 
       types =
         text: ['multiline', 'numbers']
@@ -508,7 +520,7 @@ module.exports = do ->
         repeat: groupTypes
         # Question Matrix is always 'field-list', regardless of provided type,
         # so we don't even allow 'other' here
-        kobomatrix: [fieldListType]
+        kobomatrix: []
 
       return types[@model._parent.getValue('type').split(' ')[0]]
 
@@ -518,13 +530,28 @@ module.exports = do ->
 
     html: ->
       @$el.addClass("card__settings__fields--active")
+      modelValue = @model.get('value') or ''
+      currentWidth = @_extractWidth(modelValue)
       widthField = viewRowDetail.Templates.field(
-        @_buildWidthSelect(4),
+        @_buildWidthSelect(currentWidth),
         "#{@cid}-width",
         t("Width units")
       )
       if @model_is_group(@model)
-        return viewRowDetail.Templates.dropdown(@cid, @model.key, @getTypes(), t("Appearance (advanced)")) + widthField
+        isChecked = @_hasFieldList(modelValue)
+        checkedAttr = if isChecked then ' checked' else ''
+        fieldListCheckbox = viewRowDetail.Templates.field(
+          """<input type="checkbox" class="appearance-field-list" id="#{@cid}-fieldlist"#{checkedAttr}/> <label for="#{@cid}-fieldlist">#{t("Show all questions in this group on the same screen")}</label>""",
+          "#{@cid}-fieldlist-wrap",
+          t("Display")
+        )
+        otherValue = @_stripAll(modelValue)
+        otherField = viewRowDetail.Templates.field(
+          """<input type="text" class="appearance-other-text" value="#{otherValue}" />""",
+          "#{@cid}-other",
+          t("Appearance (advanced)")
+        )
+        return fieldListCheckbox + otherField + widthField
       else
         appearances = @getTypes()
         if appearances?
@@ -537,74 +564,85 @@ module.exports = do ->
     model_is_group: (model) ->
       model._parent.constructor.key == 'group'
 
+    _groupUpdateModel: () ->
+      $fieldListCb = @$('.appearance-field-list')
+      $otherInput = @$('.appearance-other-text')
+      $widthInput = @$('.appearance-width-units')
+      @model.set 'value', @_buildAppearanceParts(
+        fieldList: $fieldListCb.prop('checked')
+        base: $otherInput.val()
+        width: parseInt($widthInput.val()) or 4
+      )
+
     afterRender: ->
-      $select = @$('select')
-      $select.addClass('group__appearance')
       modelValue = @model.get('value') or ''
-      baseValue = @_stripWidth(modelValue)
       currentWidth = @_extractWidth(modelValue)
 
-      # Initialize and wire up the width units select
       $widthInput = @$('.appearance-width-units')
-      $widthInput.val(String(currentWidth))
-      $widthInput.on 'change', () =>
-        width = parseInt($widthInput.val()) or 4
-        @model.set 'value', @_buildAppearance(@_stripWidth(@model.get('value') or ''), width)
 
-      if $select.length > 0
-        $input = $('<input/>', {class:'text', type: 'text', width: 'auto'})
-        if baseValue != ''
-          appearanceTypes = @getTypes()
-          # Because appearance types are now `string` or `string[]`, we need to
-          # make a more detailed check to verify the model value is in the list
-          # before selecting it
-          hasValue = false
-          if appearanceTypes
-            for appearanceType in appearanceTypes
-              if typeof appearanceType is 'string'
-                hasValue = baseValue == appearanceType
-              else if Array.isArray(appearanceType)
-                hasValue = baseValue == appearanceType[0]
+      if @model_is_group(@model)
+        # Group/repeat: checkbox + text + width
+        $fieldListCb = @$('.appearance-field-list')
+        $otherInput = @$('.appearance-other-text')
 
-          if hasValue
-            $select.val(baseValue)
-          else
-            $select.val('other')
-            $input.val(baseValue)
-            @$('.settings__input').first().append $input
-            @_listenForAppearanceText($input)
-
-        $select.change () =>
-          width = parseInt($widthInput.val()) or 4
-          if $select.val() == 'other'
-            @model.set 'value', @_buildAppearance('', width)
-            @$('.settings__input').first().append $input
-            @_listenForAppearanceText($input)
-          else if $select.val() == 'select'
-            @model.set 'value', "w#{width}"
-          else
-            @model.set 'value', @_buildAppearance($select.val(), width)
-            $input.remove()
+        $fieldListCb.on 'change', () => @_groupUpdateModel()
+        $otherInput.on 'change', () => @_groupUpdateModel()
+        $otherInput.on 'keyup', (evt) =>
+          if evt.key is 'Enter' or evt.keyCode is 13
+            $otherInput.blur()
+        $widthInput.on 'change', () => @_groupUpdateModel()
       else
-        $input = @$('input:not(.appearance-width-units)')
-        if $input.attr('type') == 'text'
-          $input.val(baseValue)
-          @_listenForAppearanceText($input)
-        else if $input.attr('type') == 'checkbox'
-          if baseValue == 'field-list'
-            $input.prop('checked', true)
-          $input.on 'change', () =>
-            width = parseInt($widthInput.val()) or 4
-            if $input.prop('checked')
-              @model.set 'value', @_buildAppearance('field-list', width)
+        # Non-group: appearance select/text + width
+        $select = @$('select:not(.appearance-width-units)')
+        $select.addClass('group__appearance')
+        baseValue = @_stripWidth(modelValue)
+
+        $widthInput.on 'change', () =>
+          width = parseInt($widthInput.val()) or 4
+          @model.set 'value', @_buildAppearanceParts(fieldList: false, base: @_stripWidth(@_stripFieldList(@model.get('value') or '')), width: width)
+
+        if $select.length > 0
+          $input = $('<input/>', {class:'text', type: 'text', width: 'auto'})
+          if baseValue != ''
+            appearanceTypes = @getTypes()
+            hasValue = false
+            if appearanceTypes
+              for appearanceType in appearanceTypes
+                if typeof appearanceType is 'string'
+                  hasValue = baseValue == appearanceType
+                else if Array.isArray(appearanceType)
+                  hasValue = baseValue == appearanceType[0]
+
+            if hasValue
+              $select.val(baseValue)
             else
+              $select.val('other')
+              $input.val(baseValue)
+              @$('.settings__input').first().append $input
+              @_listenForAppearanceText($input)
+
+          $select.change () =>
+            width = parseInt($widthInput.val()) or 4
+            if $select.val() == 'other'
+              @model.set 'value', @_buildAppearanceParts(fieldList: false, base: '', width: width)
+              @$('.settings__input').first().append $input
+              @_listenForAppearanceText($input)
+            else if $select.val() == 'select'
               @model.set 'value', "w#{width}"
+            else
+              @model.set 'value', @_buildAppearanceParts(fieldList: false, base: $select.val(), width: width)
+              $input.remove()
+        else
+          $input = @$('input:not(.appearance-width-units)')
+          if $input.attr('type') == 'text'
+            $input.val(baseValue)
+            @_listenForAppearanceText($input)
 
     _listenForAppearanceText: ($input) ->
       $widthInput = @$('.appearance-width-units')
       $input.on 'change', () =>
         width = parseInt($widthInput.val(), 10) or 4
-        @model.set 'value', @_buildAppearance($input.val(), width)
+        @model.set 'value', @_buildAppearanceParts(fieldList: false, base: $input.val(), width: width)
       $input.on 'keyup', (evt) =>
         if evt.key is 'Enter' or evt.keyCode is 13
           $input.blur()
