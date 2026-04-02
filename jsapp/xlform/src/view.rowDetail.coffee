@@ -543,7 +543,7 @@ module.exports = do ->
         fieldListCheckbox = viewRowDetail.Templates.field(
           """<input type="checkbox" class="appearance-field-list" id="#{@cid}-fieldlist"#{checkedAttr}/> <label for="#{@cid}-fieldlist">#{t("Show all questions in this group on the same screen")}</label>""",
           "#{@cid}-fieldlist-wrap",
-          t("Display")
+          t("Display (only for pages theme)")
         )
         otherValue = @_stripAll(modelValue)
         otherField = viewRowDetail.Templates.field(
@@ -551,7 +551,7 @@ module.exports = do ->
           "#{@cid}-other",
           t("Appearance (advanced)")
         )
-        return fieldListCheckbox + otherField + widthField
+        return otherField + widthField + fieldListCheckbox
       else
         appearances = @getTypes()
         if appearances?

@@ -163,9 +163,9 @@ msgstr "Anchura en unidades"
 msgid "Show all questions in this group on the same screen"
 msgstr "Mostrar el contenido de este grupo en la misma página"
 
-#: .Display
-msgid "Display"
-msgstr "Visualización"
+#: .Display+(only+for+pages+theme)
+msgid "Display (only for pages theme)"
+msgstr "Visualización en página"
 
 #: .question
 msgid "question"
