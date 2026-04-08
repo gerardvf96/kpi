@@ -823,6 +823,11 @@ class DataViewSet(
             # Ensure __version__ element exists before setting its value
             el = get_or_create_element(submission_xml_root, '__version__')
             el.text = version_uid
+            # Also update the version attribute on the root element so Enketo
+            # sees a consistent version (format: "N (date)")
+            submission_xml_root.set(
+                'version', self.asset.version_number_and_date
+            )
 
         # Retrieve the XML root node name from the submission. The instance's
         # root node name specified in the form XML (i.e. the first child of
