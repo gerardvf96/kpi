@@ -347,8 +347,7 @@ module.exports = do ->
       value: ''
       _hideUnlessChanged: true
     appearance:
-      value: ''
-      _hideUnlessChanged: true
+      value: 'w12'
 
   configs.newGroupDetails =
     name:
@@ -367,8 +366,7 @@ module.exports = do ->
       value: ""
       _hideUnlessChanged: true
     appearance:
-      value: ''
-      _hideUnlessChanged: true
+      value: 'w12'
 
 
   configs.question_types = {}
