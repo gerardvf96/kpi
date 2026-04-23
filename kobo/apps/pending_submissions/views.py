@@ -54,6 +54,25 @@ def _generate_enketo_edit_url(submission_id: str) -> str:
     return f"{base_url}/pending-submissions/{submission_id}/enketo/redirect/edit/"
 
 
+def _set_pending_submission_cookie(response, submission_id: str):
+    """Set the JWT cookie for pending submission access on a response."""
+    jwt_payload = {
+        'type': 'pending_submission_access',
+        'submission_id': submission_id,
+        'exp': datetime.utcnow() + timedelta(hours=24),
+    }
+    jwt_token = jwt.encode(jwt_payload, settings.SECRET_KEY, algorithm='HS256')
+    response.set_cookie(
+        key='pending_submission_token',
+        value=jwt_token,
+        domain=settings.SESSION_COOKIE_DOMAIN,
+        secure=settings.SESSION_COOKIE_SECURE or None,
+        httponly=True,
+        samesite='Lax',
+    )
+    return response
+
+
 class PendingSubmissionPageView(APIView):
     """
     View to render the pending submission page.
@@ -95,29 +114,14 @@ class PendingSubmissionPageView(APIView):
         )
         context['submission_info'] = json.dumps(submission_info)
         
-        # Generate and set JWT token as cookie for Enketo authentication
-        jwt_payload = {
-            'type': 'pending_submission_access',
-            'submission_id': submission_id,
-            'exp': datetime.utcnow() + timedelta(hours=24),  # Token valid for 24 hours
-        }
-        jwt_token = jwt.encode(jwt_payload, settings.SECRET_KEY, algorithm='HS256')
-        
         response = TemplateResponse(
             request,
             'pending_submissions/verify.html',
             context
         )
         
-        # Set JWT token as cookie
-        response.set_cookie(
-            key='pending_submission_token',
-            value=jwt_token,
-            domain=settings.SESSION_COOKIE_DOMAIN,
-            secure=settings.SESSION_COOKIE_SECURE or None,
-            httponly=True,
-            samesite='Lax',
-        )
+        # Generate and set JWT token as cookie for Enketo authentication
+        _set_pending_submission_cookie(response, submission_id)
         
         return response
     
@@ -227,7 +231,9 @@ class EnketoEditProxyView(APIView):
                 new_query,
                 parsed_url.fragment
             ))
-            return HttpResponseRedirect(new_url)
+            response = HttpResponseRedirect(new_url)
+            _set_pending_submission_cookie(response, submission_id)
+            return response
         else:
             return Response(
                 {'error': t('Failed to generate Enketo edit link.')},
@@ -564,7 +570,9 @@ class EnketoViewProxyView(APIView):
                 new_query,
                 parsed_url.fragment
             ))
-            return HttpResponseRedirect(new_url)
+            response = HttpResponseRedirect(new_url)
+            _set_pending_submission_cookie(response, submission_id)
+            return response
         else:
             return Response(
                 {'error': t('Failed to generate Enketo view link.')},
