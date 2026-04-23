@@ -591,6 +591,10 @@ module.exports = do ->
           if evt.key is 'Enter' or evt.keyCode is 13
             $otherInput.blur()
         $widthInput.on 'change', () => @_groupUpdateModel()
+
+        # Persist default w12 into the model even if the user doesn't touch the dropdown
+        if not /\bw\d+\b/.test(modelValue)
+          @_groupUpdateModel()
       else
         # Non-group: appearance select/text + width
         $select = @$('select:not(.appearance-width-units)')
