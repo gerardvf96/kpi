@@ -211,8 +211,9 @@ class EnketoEditProxyView(APIView):
             )
         
         # Generate Enketo edit link and redirect immediately (URL expires in 30s)
+        redirect_url = request.GET.get('redirect_url')
         enketo_url = self._get_enketo_edit_url(
-            request, asset, submission_json
+            request, asset, submission_json, return_url=redirect_url
         )
         
         if enketo_url:
@@ -286,7 +287,8 @@ class EnketoEditProxyView(APIView):
         self, 
         request, 
         asset: Asset,
-        submission_json: dict
+        submission_json: dict,
+        return_url: str | None = None,
     ) -> str | None:
         """
         Generate Enketo edit URL by calling the Enketo API directly.
@@ -359,9 +361,7 @@ class EnketoEditProxyView(APIView):
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
                 'form_id': snapshot.uid,
-                'return_url': request.build_absolute_uri(
-                    f'/pending-submissions/{remove_uuid_prefix(submission_json["meta/rootUuid"])}/'
-                )
+                'return_url': return_url or 'false'
             }
             
             # Add attachments if any
@@ -425,7 +425,7 @@ class EnketoEditProxyView(APIView):
         except Exception:
             return None, None
     
-    def _get_enketo_view_url(self, request, asset: Asset, submission_json: dict) -> str | None:
+    def _get_enketo_view_url(self, request, asset: Asset, submission_json: dict, return_url: str | None = None) -> str | None:
         """Generate Enketo view URL by calling the Enketo API."""
         try:
             deployment = asset.deployment
@@ -479,11 +479,9 @@ class EnketoEditProxyView(APIView):
                 submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
             )
             
-            # Extract submission_id for return URL
-            submission_id = remove_uuid_prefix(submission_json['meta/rootUuid'])
-            return_url = request.build_absolute_uri(
-                f'/pending-submissions/{submission_id}/'
-            )
+            # Use provided return_url or default to false (no redirect)
+            if not return_url:
+                return_url = 'false'
             
             # Prepare data for Enketo VIEW API (not edit)
             data = {
@@ -552,7 +550,8 @@ class EnketoViewProxyView(APIView):
             )
         
         # Generate Enketo view link (works for any status)
-        enketo_url = self._get_enketo_view_url(request, asset, submission_json)
+        redirect_url = request.GET.get('redirect_url')
+        enketo_url = self._get_enketo_view_url(request, asset, submission_json, return_url=redirect_url)
         
         if enketo_url:
             # Add lang=ca parameter to Enketo URL
@@ -614,7 +613,7 @@ class EnketoViewProxyView(APIView):
         except Exception:
             return None, None
     
-    def _get_enketo_view_url(self, request, asset: Asset, submission_json: dict) -> str | None:
+    def _get_enketo_view_url(self, request, asset: Asset, submission_json: dict, return_url: str | None = None) -> str | None:
         """Generate Enketo view URL by calling the Enketo API."""
         try:
             deployment = asset.deployment
@@ -668,6 +667,10 @@ class EnketoViewProxyView(APIView):
                 submission_uuid=remove_uuid_prefix(submission_json['meta/rootUuid']),
             )
             
+            # Use provided return_url or default to false (no redirect)
+            if not return_url:
+                return_url = 'false'
+            
             # Prepare data for Enketo VIEW API (not edit)
             data = {
                 'server_url': versioned_reverse(
@@ -679,9 +682,7 @@ class EnketoViewProxyView(APIView):
                 'instance': xml_tostring(submission_xml_root),
                 'instance_id': submission_json['_uuid'],
                 'form_id': snapshot.uid,
-                'return_url': request.build_absolute_uri(
-                    f'/pending-submissions/{remove_uuid_prefix(submission_json["meta/rootUuid"])}/'
-                )
+                'return_url': return_url
             }
             
             # Add attachments if any

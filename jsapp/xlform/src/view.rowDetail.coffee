@@ -473,7 +473,7 @@ module.exports = do ->
   viewRowDetail.DetailViewMixins.appearance =
     _extractWidth: (appearance) ->
       match = (appearance or '').match(/\bw(\d+)\b/)
-      if match then parseInt(match[1]) else 4
+      if match then parseInt(match[1]) else 12
 
     _stripWidth: (appearance) ->
       (appearance or '').replace(/\bw\d+\b/g, '').replace(/\s+/g, ' ').trim()
@@ -492,7 +492,7 @@ module.exports = do ->
       if opts.fieldList then parts.push('field-list')
       base = (opts.base or '').trim()
       if base then parts.push(base)
-      parts.push("w#{opts.width or 4}")
+      parts.push("w#{opts.width or 12}")
       parts.join(' ')
 
     getTypes: () ->
@@ -525,7 +525,7 @@ module.exports = do ->
       return types[@model._parent.getValue('type').split(' ')[0]]
 
     _buildWidthSelect: (selectedWidth) ->
-      options = ("<option value=\"#{i}\"#{if i is selectedWidth then ' selected' else ''}>#{i}</option>" for i in [1..10]).join('')
+      options = ("<option value=\"#{i}\"#{if i is selectedWidth then ' selected' else ''}>#{i}/12</option>" for i in [1..12]).join('')
       """<select class="appearance-width-units">#{options}</select>"""
 
     html: ->
@@ -571,7 +571,7 @@ module.exports = do ->
       @model.set 'value', @_buildAppearanceParts(
         fieldList: $fieldListCb.prop('checked')
         base: $otherInput.val()
-        width: parseInt($widthInput.val()) or 4
+        width: parseInt($widthInput.val()) or 12
       )
 
     afterRender: ->
@@ -598,7 +598,7 @@ module.exports = do ->
         baseValue = @_stripWidth(modelValue)
 
         $widthInput.on 'change', () =>
-          width = parseInt($widthInput.val()) or 4
+          width = parseInt($widthInput.val()) or 12
           @model.set 'value', @_buildAppearanceParts(fieldList: false, base: @_stripWidth(@_stripFieldList(@model.get('value') or '')), width: width)
 
         if $select.length > 0
@@ -622,7 +622,7 @@ module.exports = do ->
               @_listenForAppearanceText($input)
 
           $select.change () =>
-            width = parseInt($widthInput.val()) or 4
+            width = parseInt($widthInput.val()) or 12
             if $select.val() == 'other'
               @model.set 'value', @_buildAppearanceParts(fieldList: false, base: '', width: width)
               @$('.settings__input').first().append $input
@@ -641,7 +641,7 @@ module.exports = do ->
     _listenForAppearanceText: ($input) ->
       $widthInput = @$('.appearance-width-units')
       $input.on 'change', () =>
-        width = parseInt($widthInput.val(), 10) or 4
+        width = parseInt($widthInput.val(), 10) or 12
         @model.set 'value', @_buildAppearanceParts(fieldList: false, base: $input.val(), width: width)
       $input.on 'keyup', (evt) =>
         if evt.key is 'Enter' or evt.keyCode is 13
