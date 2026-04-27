@@ -12,7 +12,7 @@ class PendingSubmissionAuthMiddleware:
     """
     Middleware to enable JWT authentication for OpenRosa/AssetSnapshot endpoints.
     
-    This middleware checks for the pending_submission_token cookie and ensures
+    This middleware checks for the link_access_token cookie and ensures
     JWT authentication is attempted for AssetSnapshot OpenRosa endpoints that
     Enketo uses (formList, manifest, submission, xform, etc.).
     """
@@ -22,7 +22,7 @@ class PendingSubmissionAuthMiddleware:
     
     def __call__(self, request):
         # Check if request has our JWT cookie
-        if 'pending_submission_token' in request.COOKIES:
+        if 'link_access_token' in request.COOKIES:
             # Check if this is an AssetSnapshot or OpenRosa endpoint
             path = request.path
             

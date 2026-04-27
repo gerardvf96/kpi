@@ -736,12 +736,21 @@ class DataViewSet(
 
         return self.asset.deployment
 
+    def _is_link_access_redirect(self, request):
+        parts = request.path.strip('/').split('/')
+        return (
+            len(parts) >= 2
+            and parts[-2] == 'redirect'
+            and request.user.is_anonymous
+        )
+
     def _get_enketo_link(
         self, request: Request, submission_id: int, action_: str
     ) -> Response:
 
         deployment = self._get_deployment()
-        user = request.user
+        is_link_access = self._is_link_access_redirect(request)
+        user = deployment.asset.owner if is_link_access else request.user
 
         if action_ == 'edit':
             enketo_endpoint = settings.ENKETO_EDIT_INSTANCE_ENDPOINT
@@ -750,18 +759,30 @@ class DataViewSet(
             enketo_endpoint = settings.ENKETO_VIEW_INSTANCE_ENDPOINT
             partial_perm = PERM_VIEW_SUBMISSIONS
 
-        # User's permissions are validated by the permission class. This extra step
-        # is needed to validate at a row level for users with partial permissions.
-        # A `PermissionDenied` error will be raised if it is not the case.
-        # `validate_access_with_partial_perms()` is called no matter what are the
-        # user's permissions. The first check inside the method is the user's
-        # permissions. `submission_ids` should be equal to `None` if user has
-        # regular permissions.
-        deployment.validate_access_with_partial_perms(
-            user=user,
-            perm=partial_perm,
-            submission_ids=[submission_id],
-        )
+        if is_link_access:
+            # Validate via submission flags instead of permissions
+            submission_json = deployment.get_submission(
+                submission_id, user, request=request
+            )
+            flag = (
+                '_editable_via_link' if action_ == 'edit'
+                else '_viewable_via_link'
+            )
+            if not submission_json or submission_json.get(flag) != 'true':
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied(
+                    f'This submission is not {action_}able via link.'
+                )
+            # Store info for cookie setting in _handle_enketo_redirect
+            request._link_access_root_uuid = submission_json.get(
+                'meta/rootUuid', ''
+            )
+        else:
+            deployment.validate_access_with_partial_perms(
+                user=user,
+                perm=partial_perm,
+                submission_ids=[submission_id],
+            )
 
         # The XML version is needed for Enketo
         submission_xml = deployment.get_submission(
@@ -908,5 +929,38 @@ class DataViewSet(
             except KeyError:
                 pass
             else:
-                return HttpResponseRedirect(enketo_url)
+                response = HttpResponseRedirect(enketo_url)
+                # Set cookie for anonymous link-access users
+                if hasattr(request, '_link_access_root_uuid'):
+                    self._set_link_access_cookie(
+                        response,
+                        request._link_access_root_uuid,
+                        self.asset.uid,
+                    )
+                return response
         return enketo_response
+
+    @staticmethod
+    def _set_link_access_cookie(
+        response, root_uuid: str, asset_uid: str
+    ):
+        from datetime import datetime, timedelta
+        import jwt as pyjwt
+
+        jwt_payload = {
+            'type': 'link_access',
+            'submission_id': root_uuid,
+            'asset_uid': asset_uid,
+            'exp': datetime.utcnow() + timedelta(hours=24),
+        }
+        jwt_token = pyjwt.encode(
+            jwt_payload, settings.SECRET_KEY, algorithm='HS256'
+        )
+        response.set_cookie(
+            key='link_access_token',
+            value=jwt_token,
+            domain=settings.SESSION_COOKIE_DOMAIN,
+            secure=settings.SESSION_COOKIE_SECURE or None,
+            httponly=True,
+            samesite='Lax',
+        )

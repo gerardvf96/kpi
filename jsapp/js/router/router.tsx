@@ -23,6 +23,7 @@ const FormXform = React.lazy(() => import(/* webpackPrefetch: true */ '#/compone
 const FormJson = React.lazy(() => import(/* webpackPrefetch: true */ '#/components/formJson'))
 const SectionNotFound = React.lazy(() => import(/* webpackPrefetch: true */ '#/components/sectionNotFound'))
 const FormNotFound = React.lazy(() => import(/* webpackPrefetch: true */ '#/components/formNotFound'))
+import LinkAccessRedirect from '#/components/submissions/linkAccessRedirect'
 
 export const router = createHashRouter(
   createRoutesFromElements(
@@ -188,6 +189,8 @@ export const router = createHashRouter(
               }
             />
             <Route path={ROUTES.FORM_PROCESSING_ROOT}>{processingRoutes()}</Route>
+          <Route path={ROUTES.FORM_DATA_EDIT} element={<LinkAccessRedirect action='edit' />} />
+          <Route path={ROUTES.FORM_DATA_VIEW} element={<LinkAccessRedirect action='view' />} />
           </Route>
 
           <Route path={ROUTES.FORM_SETTINGS}>

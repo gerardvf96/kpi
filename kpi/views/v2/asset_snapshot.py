@@ -342,7 +342,7 @@ class AssetSnapshotViewSet(OpenRosaViewSetMixin, AuditLoggedNoUpdateModelViewSet
         # DRASTIC FIX: Check for JWT token early and authenticate inline
         if self.request.user.is_anonymous:
             # Try to authenticate via JWT token from cookie or query param
-            token = self.request.COOKIES.get('pending_submission_token') or self.request.GET.get('pending_token')
+            token = self.request.COOKIES.get('link_access_token') or self.request.GET.get('link_access_token')
             logger.error(f"  JWT token present: {bool(token)}")
             if token:
                 try:

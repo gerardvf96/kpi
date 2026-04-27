@@ -11,6 +11,8 @@ export const SUBMISSION_ACTIONS_ID = '__SubmissionActions'
 
 export const VALIDATION_STATUS_ID_PROP = '_validation_status.uid'
 export const SUBMISSION_STATUS_ID_PROP = '_submission_status'
+export const EDITABLE_VIA_LINK_PROP = '_editable_via_link'
+export const VIEWABLE_VIA_LINK_PROP = '_viewable_via_link'
 
 // Columns that will be ALWAYS excluded from the view
 export const EXCLUDED_COLUMNS = [
@@ -28,6 +30,8 @@ export const EXCLUDED_COLUMNS = [
   'meta/deprecatedID',
   '_validation_status',
   '_submission_status',
+  '_editable_via_link',
+  '_viewable_via_link',
 ]
 
 export enum SortValues {

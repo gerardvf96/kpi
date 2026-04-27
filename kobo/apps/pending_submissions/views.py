@@ -63,7 +63,7 @@ def _set_pending_submission_cookie(response, submission_id: str):
     }
     jwt_token = jwt.encode(jwt_payload, settings.SECRET_KEY, algorithm='HS256')
     response.set_cookie(
-        key='pending_submission_token',
+        key='link_access_token',
         value=jwt_token,
         domain=settings.SESSION_COOKIE_DOMAIN,
         secure=settings.SESSION_COOKIE_SECURE or None,
@@ -720,7 +720,7 @@ class AddRecipientView(APIView):
     
     def post(self, request, submission_id):
         # Extract JWT token
-        token = request.COOKIES.get('pending_submission_token')
+        token = request.COOKIES.get('link_access_token')
         if not token:
             auth_header = request.META.get('HTTP_AUTHORIZATION', '')
             if auth_header.startswith('Bearer '):
@@ -889,7 +889,7 @@ class RemoveRecipientView(APIView):
     def post(self, request, submission_id):
         """Remove a recipient email from the submission."""
         # Validate JWT token
-        token = request.COOKIES.get('pending_submission_token')
+        token = request.COOKIES.get('link_access_token')
         if not token:
             return Response(
                 {'error': t('Authentication required.')},

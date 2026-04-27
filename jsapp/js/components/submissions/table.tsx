@@ -41,6 +41,8 @@ import {
   TABLE_MEDIA_TYPES,
   VALIDATION_STATUS_ID_PROP,
   SUBMISSION_STATUS_ID_PROP,
+  EDITABLE_VIA_LINK_PROP,
+  VIEWABLE_VIA_LINK_PROP,
 } from '#/components/submissions/tableConstants'
 import tableStore from '#/components/submissions/tableStore'
 import type { TableStoreData } from '#/components/submissions/tableStore'
@@ -719,6 +721,26 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
     }
   }
 
+  _getColumnBooleanFlag(fieldId: string, headerLabel: string, index: string): TableColumn {
+    return {
+      Header: () => (
+        <div className='column-header-wrapper'>
+          <span className='column-header-title'>{headerLabel}</span>
+        </div>
+      ),
+      sortable: false,
+      accessor: fieldId,
+      index: index,
+      id: fieldId,
+      width: 140,
+      Cell: (row: CellInfo) => {
+        const val = row.original[fieldId]
+        const isTrue = val === 'true' || val === true
+        return <span>{isTrue ? t('Sí') : t('No')}</span>
+      },
+    }
+  }
+
   /**
    * Builds and gathers all necessary react-table data and stores in state.
    */
@@ -763,6 +785,16 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
     if (columnSubmissionStatus) {
       columnsToRender.push(columnSubmissionStatus)
     }
+
+    const columnEditableViaLink = this._getColumnBooleanFlag(
+      EDITABLE_VIA_LINK_PROP, t('Edició amb enllaç'), 'zz1'
+    )
+    columnsToRender.push(columnEditableViaLink)
+
+    const columnViewableViaLink = this._getColumnBooleanFlag(
+      VIEWABLE_VIA_LINK_PROP, t('Vista amb enllaç'), 'zz2'
+    )
+    columnsToRender.push(columnViewableViaLink)
 
     const survey = this.props.asset.content?.survey
     // TODO: write some code that will get the choices for `select_x_from_file`

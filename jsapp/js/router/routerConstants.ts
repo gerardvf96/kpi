@@ -45,6 +45,8 @@ export const ROUTES = Object.freeze({
   FORM_REST: '/forms/:uid/settings/rest',
   FORM_REST_HOOK: '/forms/:uid/settings/rest/:hookUid',
   FORM_RESET: '/forms/:uid/reset',
+  FORM_DATA_EDIT: '/forms/:uid/data/:submissionId/edit',
+  FORM_DATA_VIEW: '/forms/:uid/data/:submissionId/view',
 })
 
 export const PROJECTS_ROUTES: { readonly [key: string]: string } = {

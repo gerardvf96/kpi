@@ -2,7 +2,7 @@
 // Copy and paste these into your browser console after verifying your email
 
 // 1. Check if JWT cookie exists
-console.log('JWT Cookie:', document.cookie.split('; ').find(row => row.startsWith('pending_submission_token=')));
+console.log('JWT Cookie:', document.cookie.split('; ').find(row => row.startsWith('link_access_token=')));
 
 // 2. Get the exact formList URL that's failing
 // Replace {uid} with your actual asset snapshot UID
@@ -31,9 +31,9 @@ fetch(formListUrl, {
 });
 
 // 4. Test with explicit token in query param (if cookie fails)
-const token = document.cookie.split('; ').find(row => row.startsWith('pending_submission_token='))?.split('=')[1];
+const token = document.cookie.split('; ').find(row => row.startsWith('link_access_token='))?.split('=')[1];
 if (token) {
-    const urlWithToken = `${formListUrl}&pending_token=${token}`;
+    const urlWithToken = `${formListUrl}&link_access_token=${token}`;
     console.log('Testing with query token:', urlWithToken);
     
     fetch(urlWithToken, {
