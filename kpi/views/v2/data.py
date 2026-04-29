@@ -343,16 +343,30 @@ class DataViewSet(
         renderer_classes=[renderers.JSONRenderer],
     )
     def enketo_edit(self, request, pk, *args, **kwargs):
-        submission_id = positive_int(pk)
-        enketo_response = self._get_enketo_link(request, submission_id, 'edit')
-        if enketo_response.status_code in (
-            status.HTTP_201_CREATED, status.HTTP_200_OK
-        ):
-            # See https://github.com/enketo/enketo-express/issues/187
-            EnketoSessionAuthentication.prepare_response_with_csrf_cookie(
-                request, enketo_response
+        try:
+            submission_id = positive_int(pk)
+            enketo_response = self._get_enketo_link(request, submission_id, 'edit')
+            if enketo_response.status_code in (
+                status.HTTP_201_CREATED, status.HTTP_200_OK
+            ):
+                # See https://github.com/enketo/enketo-express/issues/187
+                EnketoSessionAuthentication.prepare_response_with_csrf_cookie(
+                    request, enketo_response
+                )
+            return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            return Response(
+                {
+                    'detail': f'enketo_edit error: {e}',
+                    'traceback': traceback.format_exc(),
+                    'user': str(request.user),
+                    'is_anonymous': request.user.is_anonymous,
+                    'is_link_access': self._is_link_access_redirect(request),
+                    'path': request.path,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
 
     @extend_schema(
         description=read_md('kpi', 'data/enketo_view.md'),
@@ -379,9 +393,23 @@ class DataViewSet(
         renderer_classes=[renderers.JSONRenderer],
     )
     def enketo_view(self, request, pk, *args, **kwargs):
-        submission_id = positive_int(pk)
-        enketo_response = self._get_enketo_link(request, submission_id, 'view')
-        return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
+        try:
+            submission_id = positive_int(pk)
+            enketo_response = self._get_enketo_link(request, submission_id, 'view')
+            return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            return Response(
+                {
+                    'detail': f'enketo_view error: {e}',
+                    'traceback': traceback.format_exc(),
+                    'user': str(request.user),
+                    'is_anonymous': request.user.is_anonymous,
+                    'is_link_access': self._is_link_access_redirect(request),
+                    'path': request.path,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def get_queryset(self):
         # This method is needed when pagination is activated and renderer is
