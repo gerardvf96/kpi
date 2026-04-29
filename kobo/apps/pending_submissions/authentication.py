@@ -97,8 +97,8 @@ class PendingSubmissionJWTAuthentication(BaseAuthentication):
                 raise AuthenticationFailed('Submission not found')
 
             # Check that the submission is accessible via link
-            editable = submission.get('_editable_via_link') == 'true'
-            viewable = submission.get('_viewable_via_link') == 'true'
+            editable = str(submission.get('_editable_via_link', '')).lower() == 'true'
+            viewable = str(submission.get('_viewable_via_link', '')).lower() == 'true'
             if not editable and not viewable:
                 raise AuthenticationFailed(
                     'Submission is not accessible via link'

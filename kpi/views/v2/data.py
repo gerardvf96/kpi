@@ -768,7 +768,7 @@ class DataViewSet(
                 '_editable_via_link' if action_ == 'edit'
                 else '_viewable_via_link'
             )
-            if not submission_json or submission_json.get(flag) != 'true':
+            if not submission_json or str(submission_json.get(flag, '')).lower() != 'true':
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied(
                     f'This submission is not {action_}able via link.'

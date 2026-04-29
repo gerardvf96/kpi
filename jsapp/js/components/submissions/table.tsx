@@ -735,7 +735,7 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       width: 140,
       Cell: (row: CellInfo) => {
         const val = row.original[fieldId]
-        const isTrue = val === 'true' || val === true
+        const isTrue = String(val).toLowerCase() === 'true' || val === true
         return <span>{isTrue ? t('Sí') : t('No')}</span>
       },
     }
