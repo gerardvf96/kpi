@@ -189,8 +189,6 @@ export const router = createHashRouter(
               }
             />
             <Route path={ROUTES.FORM_PROCESSING_ROOT}>{processingRoutes()}</Route>
-          <Route path={ROUTES.FORM_DATA_EDIT} element={<LinkAccessRedirect action='edit' />} />
-          <Route path={ROUTES.FORM_DATA_VIEW} element={<LinkAccessRedirect action='view' />} />
           </Route>
 
           <Route path={ROUTES.FORM_SETTINGS}>
@@ -328,7 +326,10 @@ export const router = createHashRouter(
           </Suspense>
         }
       />
-    </Route>,
+    </Route>
+    <Route path={ROUTES.FORM_DATA_EDIT} element={<LinkAccessRedirect action='edit' />} />
+    <Route path={ROUTES.FORM_DATA_VIEW} element={<LinkAccessRedirect action='view' />} />
+    </>,
   ),
 )
 

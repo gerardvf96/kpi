@@ -343,30 +343,16 @@ class DataViewSet(
         renderer_classes=[renderers.JSONRenderer],
     )
     def enketo_edit(self, request, pk, *args, **kwargs):
-        try:
-            submission_id = positive_int(pk)
-            enketo_response = self._get_enketo_link(request, submission_id, 'edit')
-            if enketo_response.status_code in (
-                status.HTTP_201_CREATED, status.HTTP_200_OK
-            ):
-                # See https://github.com/enketo/enketo-express/issues/187
-                EnketoSessionAuthentication.prepare_response_with_csrf_cookie(
-                    request, enketo_response
-                )
-            return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
-        except Exception as e:
-            import traceback
-            return Response(
-                {
-                    'detail': f'enketo_edit error: {e}',
-                    'traceback': traceback.format_exc(),
-                    'user': str(request.user),
-                    'is_anonymous': request.user.is_anonymous,
-                    'is_link_access': self._is_link_access_redirect(request),
-                    'path': request.path,
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        submission_id = positive_int(pk)
+        enketo_response = self._get_enketo_link(request, submission_id, 'edit')
+        if enketo_response.status_code in (
+            status.HTTP_201_CREATED, status.HTTP_200_OK
+        ):
+            # See https://github.com/enketo/enketo-express/issues/187
+            EnketoSessionAuthentication.prepare_response_with_csrf_cookie(
+                request, enketo_response
             )
+        return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
 
     @extend_schema(
         description=read_md('kpi', 'data/enketo_view.md'),
@@ -393,23 +379,9 @@ class DataViewSet(
         renderer_classes=[renderers.JSONRenderer],
     )
     def enketo_view(self, request, pk, *args, **kwargs):
-        try:
-            submission_id = positive_int(pk)
-            enketo_response = self._get_enketo_link(request, submission_id, 'view')
-            return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
-        except Exception as e:
-            import traceback
-            return Response(
-                {
-                    'detail': f'enketo_view error: {e}',
-                    'traceback': traceback.format_exc(),
-                    'user': str(request.user),
-                    'is_anonymous': request.user.is_anonymous,
-                    'is_link_access': self._is_link_access_redirect(request),
-                    'path': request.path,
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        submission_id = positive_int(pk)
+        enketo_response = self._get_enketo_link(request, submission_id, 'view')
+        return self._handle_enketo_redirect(request, enketo_response, *args, **kwargs)
 
     def get_queryset(self):
         # This method is needed when pagination is activated and renderer is
@@ -764,21 +736,12 @@ class DataViewSet(
 
         return self.asset.deployment
 
-    def _is_link_access_redirect(self, request):
-        parts = request.path.strip('/').split('/')
-        return (
-            len(parts) >= 2
-            and parts[-2] == 'redirect'
-            and request.user.is_anonymous
-        )
-
     def _get_enketo_link(
         self, request: Request, submission_id: int, action_: str
     ) -> Response:
 
         deployment = self._get_deployment()
-        is_link_access = self._is_link_access_redirect(request)
-        user = deployment.asset.owner if is_link_access else request.user
+        user = request.user
 
         if action_ == 'edit':
             enketo_endpoint = settings.ENKETO_EDIT_INSTANCE_ENDPOINT
@@ -787,30 +750,11 @@ class DataViewSet(
             enketo_endpoint = settings.ENKETO_VIEW_INSTANCE_ENDPOINT
             partial_perm = PERM_VIEW_SUBMISSIONS
 
-        if is_link_access:
-            # Validate via submission flags instead of permissions
-            submission_json = deployment.get_submission(
-                submission_id, user, request=request
-            )
-            flag = (
-                '_editable_via_link' if action_ == 'edit'
-                else '_viewable_via_link'
-            )
-            if not submission_json or str(submission_json.get(flag, '')).lower() != 'true':
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied(
-                    f'This submission is not {action_}able via link.'
-                )
-            # Store info for cookie setting in _handle_enketo_redirect
-            request._link_access_root_uuid = submission_json.get(
-                'meta/rootUuid', ''
-            )
-        else:
-            deployment.validate_access_with_partial_perms(
-                user=user,
-                perm=partial_perm,
-                submission_ids=[submission_id],
-            )
+        deployment.validate_access_with_partial_perms(
+            user=user,
+            perm=partial_perm,
+            submission_ids=[submission_id],
+        )
 
         # The XML version is needed for Enketo
         submission_xml = deployment.get_submission(
@@ -957,38 +901,5 @@ class DataViewSet(
             except KeyError:
                 pass
             else:
-                response = HttpResponseRedirect(enketo_url)
-                # Set cookie for anonymous link-access users
-                if hasattr(request, '_link_access_root_uuid'):
-                    self._set_link_access_cookie(
-                        response,
-                        request._link_access_root_uuid,
-                        self.asset.uid,
-                    )
-                return response
+                return HttpResponseRedirect(enketo_url)
         return enketo_response
-
-    @staticmethod
-    def _set_link_access_cookie(
-        response, root_uuid: str, asset_uid: str
-    ):
-        from datetime import datetime, timedelta
-        import jwt as pyjwt
-
-        jwt_payload = {
-            'type': 'link_access',
-            'submission_id': root_uuid,
-            'asset_uid': asset_uid,
-            'exp': datetime.utcnow() + timedelta(hours=24),
-        }
-        jwt_token = pyjwt.encode(
-            jwt_payload, settings.SECRET_KEY, algorithm='HS256'
-        )
-        response.set_cookie(
-            key='link_access_token',
-            value=jwt_token,
-            domain=settings.SESSION_COOKIE_DOMAIN,
-            secure=settings.SESSION_COOKIE_SECURE or None,
-            httponly=True,
-            samesite='Lax',
-        )

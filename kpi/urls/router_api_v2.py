@@ -2,8 +2,8 @@ from django.urls import path
 from rest_framework.renderers import JSONRenderer
 from rest_framework_extensions.routers import ExtendedDefaultRouter
 
-from kpi.permissions import EditLinkSubmissionPermission, ViewSubmissionPermission
 from kobo.apps.audit_log.urls import router as audit_log_router
+from kobo.apps.pending_submissions.views_link_access import LinkAccessView
 from kobo.apps.audit_log.views import ProjectHistoryLogViewSet
 from kobo.apps.hook.views.v2.hook import HookViewSet
 from kobo.apps.hook.views.v2.hook_log import HookLogViewSet
@@ -225,7 +225,6 @@ enketo_url_aliases = [
         DataViewSet.as_view(
             {'get': 'enketo_edit'},
             renderer_classes=[JSONRenderer],
-            permission_classes=[EditLinkSubmissionPermission],
         ),
         name='submission-enketo-edit-redirect',
     ),
@@ -234,10 +233,17 @@ enketo_url_aliases = [
         DataViewSet.as_view(
             {'get': 'enketo_view'},
             renderer_classes=[JSONRenderer],
-            permission_classes=[ViewSubmissionPermission],
         ),
         name='submission-enketo-view-redirect',
     ),
 ]
 
-urls_patterns = router_api_v2.urls + enketo_url_aliases
+link_access_url = [
+    path(
+        'assets/<uid>/data/<root_uuid>/link-access/<action>/',
+        LinkAccessView.as_view(),
+        name='submission-link-access',
+    ),
+]
+
+urls_patterns = router_api_v2.urls + enketo_url_aliases + link_access_url

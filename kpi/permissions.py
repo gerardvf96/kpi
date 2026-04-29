@@ -460,12 +460,6 @@ class DuplicateSubmissionPermission(SubmissionPermission):
     }
 
 
-def _is_enketo_redirect_path(request):
-    """Check if the request is for an Enketo redirect endpoint."""
-    parts = request.path.strip('/').split('/')
-    return len(parts) >= 2 and parts[-2] == 'redirect'
-
-
 class EditLinkSubmissionPermission(SubmissionPermission):
 
     perms_map = {
@@ -474,14 +468,7 @@ class EditLinkSubmissionPermission(SubmissionPermission):
         'POST': ['%(app_label)s.change_%(model_name)s'],
     }
 
-    def has_permission(self, request, view):
-        if _is_enketo_redirect_path(request) and request.user.is_anonymous:
-            return True
-        return super().has_permission(request, view)
-
     def has_object_permission(self, request, view, obj):
-        if _is_enketo_redirect_path(request) and request.user.is_anonymous:
-            return True
         return not request.user.is_anonymous
 
 
@@ -506,16 +493,6 @@ class ViewSubmissionPermission(SubmissionPermission):
     perms_map = {
         'GET': ['%(app_label)s.view_%(model_name)s'],
     }
-
-    def has_permission(self, request, view):
-        if _is_enketo_redirect_path(request) and request.user.is_anonymous:
-            return True
-        return super().has_permission(request, view)
-
-    def has_object_permission(self, request, view, obj):
-        if _is_enketo_redirect_path(request) and request.user.is_anonymous:
-            return True
-        return super().has_object_permission(request, view, obj)
 
 
 class ExportTaskPermission(SubmissionPermission):
