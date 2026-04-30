@@ -781,11 +781,6 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       columnsToRender.push(columnValidation)
     }
 
-    const columnSubmissionStatus = this._getColumnSubmissionStatus()
-    if (columnSubmissionStatus) {
-      columnsToRender.push(columnSubmissionStatus)
-    }
-
     const columnEditableViaLink = this._getColumnBooleanFlag(
       EDITABLE_VIA_LINK_PROP, t('Edició amb enllaç'), 'zz1'
     )
@@ -1104,38 +1099,38 @@ export class DataTable extends React.Component<DataTableProps, DataTableState> {
       const columnQuestion = col.question
 
       // We set filters here, so they apply for all columns
-      if (isTableColumnFilterableByDropdown(columnQuestion?.type)) {
-        col.filterable = true
-        col.Filter = ({ filter, onChange }) => (
-          <select
-            onChange={(event) => onChange(event.target.value)}
-            style={{ width: '100%' }}
-            value={filter ? filter.value : ''}
-          >
-            <option value=''>{t('Show All')}</option>
-            {choices
-              .filter((choiceItem) => choiceItem.list_name === columnQuestion?.select_from_list_name)
-              .map((item, n) => {
-                const displayName = getQuestionOrChoiceDisplayName(item, translationIndex)
-                return (
-                  <option value={item.name} key={n}>
-                    {displayName}
-                  </option>
-                )
-              })}
-          </select>
-        )
-      } else if (isTableColumnFilterableByTextInput(columnQuestion?.type, col.id)) {
-        col.filterable = true
-        col.Filter = ({ filter, onChange }) => (
-          <DebounceInput
-            value={filter ? filter.value : undefined}
-            debounceTimeout={750}
-            onChange={(event) => onChange(event.target.value)}
-            className='table-filter-input'
-            placeholder={t('Search')}
-          />
-        )
+        if (isTableColumnFilterableByDropdown(columnQuestion?.type)) {
+          col.filterable = true
+          col.Filter = ({ filter, onChange }) => (
+            <select
+              onChange={(event) => onChange(event.target.value)}
+              style={{ width: '100%' }}
+              value={filter ? filter.value : ''}
+            >
+              <option value=''>{t('Show All')}</option>
+              {choices
+                .filter((choiceItem) => choiceItem.list_name === columnQuestion?.select_from_list_name)
+                .map((item, n) => {
+                  const displayName = getQuestionOrChoiceDisplayName(item, translationIndex)
+                  return (
+                    <option value={item.name} key={n}>
+                      {displayName}
+                    </option>
+                  )
+                })}
+            </select>
+          )
+        } else if (isTableColumnFilterableByTextInput(columnQuestion?.type, col.id)) {
+          col.filterable = true
+          col.Filter = ({ filter, onChange }) => (
+            <DebounceInput
+              value={filter ? filter.value : undefined}
+              debounceTimeout={750}
+              onChange={(event) => onChange(event.target.value)}
+              className='table-filter-input'
+              placeholder={t('Search')}
+            />
+          )
       }
 
       // Ensure frozen columns stay correctly aligned to the left, even after
