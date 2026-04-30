@@ -27,6 +27,7 @@ import LinkAccessRedirect from '#/components/submissions/linkAccessRedirect'
 
 export const router = createHashRouter(
   createRoutesFromElements(
+    <>
     <Route path={ROUTES.ROOT} element={<App />}>
       <Route path={ROUTES.ROOT} element={<Navigate to={ROUTES.FORMS} replace />} />
       <Route path={ROUTES.ACCOUNT_ROOT}>{accountRoutes()}</Route>
