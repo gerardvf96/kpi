@@ -46,14 +46,25 @@ class LinkAccessView(APIView):
 
         deployment = asset.deployment
 
-        try:
-            submissions = list(deployment.get_submissions(
-                user=asset.owner,
-                query={'meta/rootUuid': root_uuid},
-                limit=1,
-            ))
-        except Exception:
-            submissions = []
+        # Try the provided value first, then with/without 'uuid:' prefix
+        candidates = [root_uuid]
+        if root_uuid.startswith('uuid:'):
+            candidates.append(root_uuid[5:])
+        else:
+            candidates.append(f'uuid:{root_uuid}')
+
+        submissions = []
+        for candidate in candidates:
+            try:
+                submissions = list(deployment.get_submissions(
+                    user=asset.owner,
+                    query={'meta/rootUuid': candidate},
+                    limit=1,
+                ))
+            except Exception:
+                pass
+            if submissions:
+                break
 
         if not submissions:
             return Response(
@@ -71,11 +82,12 @@ class LinkAccessView(APIView):
             )
 
         submission_id = submission.get('_id')
+        actual_root_uuid = submission.get('meta/rootUuid', root_uuid)
 
         # Build JWT cookie so Enketo callbacks can authenticate
         jwt_payload = {
             'type': 'link_access',
-            'submission_id': root_uuid,
+            'submission_id': actual_root_uuid,
             'asset_uid': uid,
             'exp': datetime.utcnow() + timedelta(hours=24),
         }

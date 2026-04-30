@@ -24,6 +24,9 @@ from kobo.apps.reports.report_data import build_formpack
 from kobo.apps.openrosa.apps.logger.xform_instance_parser import remove_uuid_prefix
 from kobo.apps.openrosa.libs.utils.logger_tools import http_open_rosa_error_handler
 from kpi.authentication import EnketoSessionAuthentication
+from kobo.apps.pending_submissions.authentication import (
+    PendingSubmissionJWTAuthentication,
+)
 from kpi.constants import (
     PERM_CHANGE_SUBMISSIONS,
     PERM_DELETE_SUBMISSIONS,
@@ -339,6 +342,10 @@ class DataViewSet(
         detail=True,
         methods=['GET'],
         permission_classes=[EditLinkSubmissionPermission],
+        authentication_classes=[
+            PendingSubmissionJWTAuthentication,
+            EnketoSessionAuthentication,
+        ],
         url_path='enketo/edit',
         renderer_classes=[renderers.JSONRenderer],
     )
@@ -375,6 +382,10 @@ class DataViewSet(
         detail=True,
         methods=['GET'],
         permission_classes=[ViewSubmissionPermission],
+        authentication_classes=[
+            PendingSubmissionJWTAuthentication,
+            EnketoSessionAuthentication,
+        ],
         url_path='enketo/view',
         renderer_classes=[renderers.JSONRenderer],
     )
